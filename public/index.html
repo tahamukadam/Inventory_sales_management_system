@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Inv-Sales — Inventory & POS</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --muted: #6b7280;
+      }
+      body {
+        font-family: Inter, system-ui;
+        background: #f6f8fb;
+        padding-top: 76px;
+      }
+      .container-lg {
+        max-width: 1100px;
+      }
+      .hero {
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+        border-radius: 12px;
+        padding: 22px;
+        box-shadow: 0 6px 18px rgba(20, 30, 60, 0.06);
+        margin-bottom: 14px;
+      }
+      .stat-card {
+        border-radius: 10px;
+        padding: 14px;
+        background: #fff;
+        box-shadow: 0 6px 14px rgba(16, 24, 40, 0.04);
+      }
+      .small-muted {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .feature {
+        min-height: 92px;
+      }
+      .cta-primary {
+        min-width: 140px;
+      }
+      .debug {
+        font-family: monospace;
+        font-size: 0.82rem;
+        background: #fff;
+        padding: 0.6rem;
+        border-radius: 8px;
+        border: 1px solid #eee;
+        max-height: 160px;
+        overflow: auto;
+      }
+      .nav-brand {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+      }
+      footer {
+        padding: 28px 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+      @media (max-width: 575px) {
+        .hero {
+          padding: 16px;
+        }
+        .stat-card {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav
+      class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top"
+    >
+      <div class="container-lg">
+        <a class="navbar-brand nav-brand" href="/">
+          <i class="bi bi-box-seam fs-4 text-primary"></i>
+          <div class="fw-semibold">Inv-Sales</div>
+        </a>
+
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <span id="navUser" class="small-muted">Checking login…</span>
+
+          <!-- Users link (visible to admin only) -->
+          <a
+            id="navUsers"
+            class="btn btn-sm btn-outline-secondary d-none"
+            href="/users.html"
+            >Users</a
+          >
+
+          <a
+            id="navLogin"
+            class="btn btn-sm btn-outline-primary"
+            href="/login.html"
+            >Login</a
+          >
+          <button
+            id="navLogout"
+            class="btn btn-sm btn-outline-secondary d-none"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container-lg mt-4">
+      <div class="row g-3">
+        <div class="col-12">
+          <div
+            class="hero d-flex flex-column flex-md-row gap-3 align-items-center"
+          >
+            <div class="flex-fill">
+              <h2 class="mb-1">
+                Inventory & Sales — Lightweight POS for demos
+              </h2>
+              <p class="small-muted mb-2">
+                A simple full-stack inventory and sales demo built with Node.js,
+                Express and MySQL. Use the POS to record sales, manage products
+                and export reports.
+              </p>
+
+              <div class="d-flex flex-wrap gap-2">
+                <a href="/pos.html" class="btn btn-primary cta-primary"
+                  ><i class="bi bi-cash-stack me-1"></i> Open POS</a
+                >
+                <a href="/products.html" class="btn btn-outline-primary"
+                  ><i class="bi bi-list-ul me-1"></i> Manage Products</a
+                >
+                <a href="/admin_sales.html" class="btn btn-outline-secondary"
+                  ><i class="bi bi-graph-up me-1"></i> Admin Sales</a
+                >
+                <a
+                  id="btnReports"
+                  href="/admin_sales.html"
+                  class="btn btn-outline-success d-none"
+                  ><i class="bi bi-download me-1"></i> Reports</a
+                >
+              </div>
+            </div>
+
+            <div style="min-width: 260px">
+              <div class="stat-card mb-2">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="small-muted">Products</div>
+                    <div id="statProducts" class="h4 mb-0">—</div>
+                  </div>
+                  <div><i class="bi bi-box-seam fs-2 text-primary"></i></div>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <div class="small-muted">Recent sales</div>
+                    <div id="statSales" class="h4 mb-0">—</div>
+                  </div>
+                  <div><i class="bi bi-receipt fs-2 text-success"></i></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Features -->
+        <div class="col-md-8">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="card p-3">
+                <h5 class="mb-2">Overview</h5>
+                <p class="small-muted mb-1">
+                  This demo is designed to be simple and reliable for a
+                  college-level project. It includes:
+                </p>
+                <ul class="small-muted mb-0">
+                  <li>POS with cart & printable invoice</li>
+                  <li>Product CRUD, stock levels and low-stock alerts</li>
+                  <li>Sales history with CSV export</li>
+                  <li>Session-based login (simple demo admin account)</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="card stat-card feature">
+                <div class="d-flex flex-column h-100 justify-content-between">
+                  <div>
+                    <strong>Fast POS</strong>
+                    <div class="small-muted">Search, add to cart, checkout</div>
+                  </div>
+                  <div class="text-end">
+                    <i class="bi bi-basket3 fs-3 text-primary"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="card stat-card feature">
+                <div class="d-flex flex-column h-100 justify-content-between">
+                  <div>
+                    <strong>Product management</strong>
+                    <div class="small-muted">
+                      Add/edit stock, delete when needed
+                    </div>
+                  </div>
+                  <div class="text-end">
+                    <i class="bi bi-boxes fs-3 text-secondary"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="card stat-card feature">
+                <div class="d-flex flex-column h-100 justify-content-between">
+                  <div>
+                    <strong>Reports</strong>
+                    <div class="small-muted">Download CSV, filter by date</div>
+                  </div>
+                  <div class="text-end">
+                    <i
+                      class="bi bi-file-earmark-spreadsheet fs-3 text-success"
+                    ></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="card stat-card feature">
+                <div class="d-flex flex-column h-100 justify-content-between">
+                  <div>
+                    <strong>Audit trail</strong>
+                    <div class="small-muted">Stock movements are recorded</div>
+                  </div>
+                  <div class="text-end">
+                    <i class="bi bi-clock-history fs-3 text-warning"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column: quick stats / low-stock -->
+        <div class="col-md-4">
+          <div class="card p-3 mb-3">
+            <h6 class="mb-2">Low-stock items</h6>
+            <div id="lowStockList" class="small-muted">Loading…</div>
+          </div>
+
+          <div class="card p-3">
+            <h6 class="mb-2">Connection</h6>
+            <div id="connStatus" class="small-muted mb-2">Checking…</div>
+            <div class="small-muted">Refreshes every minute</div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="mt-4">
+        <div>• Inv-Sales demo •</div>
+      </footer>
+    </main>
+
+    <script>
+      (async function () {
+        const navUser = document.getElementById("navUser"),
+          navLogin = document.getElementById("navLogin"),
+          navLogout = document.getElementById("navLogout"),
+          navUsers = document.getElementById("navUsers");
+        const statProducts = document.getElementById("statProducts"),
+          statSales = document.getElementById("statSales");
+        const lowStockList = document.getElementById("lowStockList"),
+          connStatus = document.getElementById("connStatus");
+        const btnReports = document.getElementById("btnReports");
+
+        function logLocal(txt) {
+          console.log("[index] " + txt);
+        }
+
+        // Auth display
+        async function checkAuth() {
+          try {
+            const r = await fetch("/api/auth/me", {
+              credentials: "same-origin",
+            });
+            if (!r.ok) {
+              navUser.textContent = "Not logged in";
+              navLogin.classList.remove("d-none");
+              navLogout.classList.add("d-none");
+              navUsers.classList.add("d-none");
+              return null;
+            }
+            const j = await r.json();
+            navUser.textContent = `User: ${j.username} (${j.role})`;
+            navLogin.classList.add("d-none");
+            navLogout.classList.remove("d-none");
+            btnReports.classList.remove("d-none");
+
+            // show Users link only to admin users
+            if (j.role === "admin") {
+              navUsers.classList.remove("d-none");
+            } else {
+              navUsers.classList.add("d-none");
+            }
+
+            return j;
+          } catch (e) {
+            navUser.textContent = "Auth error";
+            navUsers.classList.add("d-none");
+            logLocal("Auth check failed: " + (e && e.message ? e.message : e));
+            return null;
+          }
+        }
+        navLogout.addEventListener("click", async () => {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+          });
+          location.reload();
+        });
+
+        // Fetch counts and low-stock detection
+        async function loadCounts() {
+          connStatus.textContent = "Connecting to API…";
+          try {
+            // products (all)
+            const pResp = await fetch("/api/products?show_out_of_stock=1", {
+              credentials: "same-origin",
+            });
+            if (!pResp.ok) {
+              statProducts.textContent = "—";
+              logLocal("Products API failed " + pResp.status);
+              connStatus.textContent = "Products API error";
+            }
+            const products = await pResp.json().catch(() => []);
+            statProducts.textContent = String(products.length || 0);
+
+            // sales (use reports endpoint and count grouped sales)
+            const sResp = await fetch("/api/reports/sales", {
+              credentials: "same-origin",
+            });
+            if (!sResp.ok) {
+              statSales.textContent = "—";
+              logLocal("Reports API failed " + sResp.status);
+              connStatus.textContent = "Reports API error";
+            }
+            const sales = await sResp.json().catch(() => []);
+            statSales.textContent = String(
+              Array.isArray(sales) ? sales.length : 0
+            );
+
+            // compute low-stock: product.quantity <= reorder_level
+            const low = (products || []).filter(
+              (p) => Number(p.quantity || 0) <= Number(p.reorder_level || 0)
+            );
+            if (!low.length)
+              lowStockList.innerHTML =
+                '<div class="small-muted">None — all good 👍</div>';
+            else {
+              lowStockList.innerHTML = low
+                .slice(0, 10)
+                .map(
+                  (p) =>
+                    `<div><strong>${escapeHtml(p.name)}</strong> — qty ${
+                      p.quantity
+                    } (reorder ${p.reorder_level})</div>`
+                )
+                .join("");
+            }
+
+            connStatus.textContent = "Connected";
+            logLocal(
+              `Loaded products: ${products.length || 0}, sales: ${
+                Array.isArray(sales) ? sales.length : 0
+              }, low:${low.length}`
+            );
+          } catch (err) {
+            connStatus.textContent = "Connection error";
+            logLocal("Load error: " + (err && err.message ? err.message : err));
+            statProducts.textContent = "—";
+            statSales.textContent = "—";
+            lowStockList.textContent = "Unable to load low-stock";
+          }
+        }
+
+        function escapeHtml(s) {
+          return String(s || "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+        }
+
+        // init
+        await checkAuth();
+        loadCounts();
+        setInterval(loadCounts, 60 * 1000);
+      })();
+    </script>
+  </body>
+</html>

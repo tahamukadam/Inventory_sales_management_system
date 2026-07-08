@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Users — Inventory</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --muted: #6b7280;
+        --card-bg: #fff;
+        --page-bg: #f7f8fa;
+      }
+      body {
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+        background: var(--page-bg);
+        padding-top: 76px;
+        color: #111827;
+      }
+      .container-lg {
+        max-width: 1100px;
+      }
+      .card-panel {
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 14px;
+        border: 1px solid #eef0f2;
+      }
+      .small-muted {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      table th,
+      table td {
+        vertical-align: middle !important;
+      }
+      footer.site-footer {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+      .not-auth-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <nav
+      class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top"
+    >
+      <div class="container-lg">
+        <a class="navbar-brand d-flex gap-2 align-items-center" href="/">
+          <i class="bi bi-box-seam fs-4 text-primary"></i
+          ><span class="fw-semibold">Inv-Sales</span>
+        </a>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <span id="navUser" class="small-muted">Checking login…</span>
+          <a
+            id="navLogin"
+            class="btn btn-sm btn-outline-primary d-none"
+            href="/login.html?next=/users.html"
+            >Login</a
+          >
+          <button
+            id="navLogout"
+            class="btn btn-sm btn-outline-secondary d-none"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container-lg mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h3>Users</h3>
+          <div class="small-muted">Manage system users — admin only</div>
+        </div>
+        <div>
+          <button id="refreshBtn" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+          <button id="btnAddUser" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Add user
+          </button>
+        </div>
+      </div>
+
+      <div id="mainPanel" class="card-panel">
+        <div id="usersContainer">
+          <div id="usersMsg" class="small-muted mb-2"></div>
+          <div class="table-responsive">
+            <table
+              class="table table-sm table-hover align-middle"
+              id="usersTbl"
+            >
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Full name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="notAuth" class="not-auth-placeholder d-none">
+          <div>
+            <h4 class="mb-2">Admins only</h4>
+            <p class="small-muted">
+              You must be signed in as an administrator to manage users.
+            </p>
+            <div>
+              <a
+                id="toLogin"
+                href="/login.html?next=/users.html"
+                class="btn btn-primary"
+                >Sign in</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="site-footer">
+        Inv-Sales demo • Node · Express · MySQL
+      </footer>
+    </main>
+
+    <!-- Add/Edit user modal -->
+    <div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="userModalTitle" class="modal-title">Add user</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="userForm">
+              <input type="hidden" id="userId" />
+              <div class="mb-2">
+                <label class="form-label small">Username</label>
+                <input id="userUsername" class="form-control" required />
+              </div>
+              <div class="mb-2">
+                <label class="form-label small">Full name</label>
+                <input id="userFullName" class="form-control" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label small">Email</label>
+                <input id="userEmail" class="form-control" type="email" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label small">Role</label>
+                <select id="userRole" class="form-select">
+                  <option value="admin">admin</option>
+                  <option value="inventory">inventory</option>
+                  <option value="clerk">clerk</option>
+                </select>
+              </div>
+
+              <div id="pwdSection" class="mb-2">
+                <label class="form-label small">Password</label>
+                <input id="userPassword" class="form-control" type="password" />
+                <div class="small-muted mt-1">
+                  For new users set a temporary password (admin will communicate
+                  it).
+                </div>
+              </div>
+
+              <div id="userFormMsg" class="small-muted mt-2"></div>
+
+              <div class="mt-3 d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  id="deleteUserBtn"
+                  class="btn btn-outline-danger d-none"
+                >
+                  Delete
+                </button>
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change password modal -->
+    <div
+      class="modal fade"
+      id="changePwdModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Change password</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="changePwdForm">
+              <input type="hidden" id="pwdUserId" />
+              <div class="mb-2">
+                <label class="form-label small">New password</label>
+                <input
+                  id="newPwd"
+                  class="form-control"
+                  type="password"
+                  required
+                />
+              </div>
+              <div id="changePwdMsg" class="small-muted"></div>
+              <div class="mt-3 d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">
+                  Set password
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      (async function () {
+        const navUser = document.getElementById("navUser"),
+          navLogin = document.getElementById("navLogin"),
+          navLogout = document.getElementById("navLogout"),
+          mainPanel = document.getElementById("mainPanel"),
+          notAuth = document.getElementById("notAuth"),
+          usersTblBody = document.querySelector("#usersTbl tbody"),
+          usersMsg = document.getElementById("usersMsg"),
+          refreshBtn = document.getElementById("refreshBtn"),
+          btnAddUser = document.getElementById("btnAddUser");
+
+        const userModalEl = document.getElementById("userModal");
+        const userModal = new bootstrap.Modal(userModalEl);
+        const userModalTitle = document.getElementById("userModalTitle");
+        const userForm = document.getElementById("userForm");
+        const userIdEl = document.getElementById("userId");
+        const userUsername = document.getElementById("userUsername");
+        const userFullName = document.getElementById("userFullName");
+        const userEmail = document.getElementById("userEmail");
+        const userRole = document.getElementById("userRole");
+        const userPassword = document.getElementById("userPassword");
+        const userFormMsg = document.getElementById("userFormMsg");
+        const deleteUserBtn = document.getElementById("deleteUserBtn");
+
+        const changePwdModalEl = document.getElementById("changePwdModal");
+        const changePwdModal = new bootstrap.Modal(changePwdModalEl);
+        const changePwdForm = document.getElementById("changePwdForm");
+        const pwdUserId = document.getElementById("pwdUserId");
+        const newPwd = document.getElementById("newPwd");
+        const changePwdMsg = document.getElementById("changePwdMsg");
+
+        let currentUser = null;
+
+        function setUsersMsg(t, kind = "info", timeout = 2500) {
+          usersMsg.textContent = t || "";
+          usersMsg.style.color = kind === "danger" ? "#b33" : "var(--muted)";
+          if (timeout && timeout > 0)
+            setTimeout(() => {
+              if (usersMsg.textContent === t) usersMsg.textContent = "";
+            }, timeout);
+        }
+
+        async function checkAuth() {
+          try {
+            const r = await fetch("/api/auth/me", {
+              credentials: "same-origin",
+            });
+            if (!r.ok) {
+              currentUser = null;
+              navUser.textContent = "Not logged in";
+              navLogin.classList.remove("d-none");
+              navLogout.classList.add("d-none");
+              showNotAuth();
+              return;
+            }
+            const j = await r.json();
+            currentUser = j;
+            navUser.textContent = `User: ${j.username} (${j.role})`;
+            navLogin.classList.add("d-none");
+            navLogout.classList.remove("d-none");
+            if (j.role !== "admin") {
+              showNotAuth();
+            } else {
+              showMain();
+              await loadUsers();
+            }
+          } catch (e) {
+            console.error("Auth check failed", e);
+            currentUser = null;
+            navUser.textContent = "Auth check failed";
+            navLogin.classList.remove("d-none");
+            navLogout.classList.add("d-none");
+            showNotAuth();
+          }
+        }
+
+        function showNotAuth() {
+          notAuth.classList.remove("d-none");
+          document.getElementById("usersContainer").classList.add("d-none");
+          btnAddUser.classList.add("d-none");
+          refreshBtn.classList.add("d-none");
+        }
+
+        function showMain() {
+          notAuth.classList.add("d-none");
+          document.getElementById("usersContainer").classList.remove("d-none");
+          btnAddUser.classList.remove("d-none");
+          refreshBtn.classList.remove("d-none");
+        }
+
+        navLogout.addEventListener("click", async () => {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+          });
+          location.reload();
+        });
+
+        document.getElementById("toLogin").addEventListener("click", () => {
+          window.location.href = "/login.html?next=/users.html";
+        });
+
+        refreshBtn.addEventListener("click", () => loadUsers());
+        btnAddUser.addEventListener("click", () => {
+          userModalTitle.textContent = "Add user";
+          userIdEl.value = "";
+          userUsername.value = "";
+          userFullName.value = "";
+          userEmail.value = "";
+          userRole.value = "clerk";
+          userPassword.value = "";
+          deleteUserBtn.classList.add("d-none");
+          userFormMsg.textContent = "";
+          userModal.show();
+        });
+
+        async function loadUsers() {
+          usersTblBody.innerHTML = '<tr><td colspan="6">Loading…</td></tr>';
+          try {
+            const r = await fetch("/api/users", { credentials: "same-origin" });
+            if (!r.ok) {
+              usersTblBody.innerHTML =
+                '<tr><td colspan="6">Failed to load users</td></tr>';
+              setUsersMsg("Failed to load users", "danger");
+              return;
+            }
+            const list = await r.json();
+            if (!Array.isArray(list) || !list.length) {
+              usersTblBody.innerHTML = '<tr><td colspan="6">No users</td></tr>';
+              return;
+            }
+            usersTblBody.innerHTML = list
+              .map((u) => {
+                // disable delete button for current logged-in user in the UI
+                const canDelete =
+                  currentUser &&
+                  Number(u.user_id) !== Number(currentUser.user_id);
+                return `
+              <tr data-id="${u.user_id}">
+                <td>${u.user_id}</td>
+                <td>${escapeHtml(u.username)}</td>
+                <td>${escapeHtml(u.full_name || "")}</td>
+                <td>${escapeHtml(u.email || "")}</td>
+                <td>${u.role}</td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-sm btn-outline-secondary btn-edit" data-id="${
+                      u.user_id
+                    }">Edit</button>
+                    <button class="btn btn-sm btn-outline-primary btn-pwd" data-id="${
+                      u.user_id
+                    }">Password</button>
+                    ${
+                      canDelete
+                        ? `<button class="btn btn-sm btn-outline-danger btn-del" data-id="${u.user_id}">Delete</button>`
+                        : `<button class="btn btn-sm btn-outline-danger btn-del" data-id="${u.user_id}" disabled title="Cannot delete your own account">Delete</button>`
+                    }
+                  </div>
+                </td>
+              </tr>
+            `;
+              })
+              .join("");
+          } catch (e) {
+            console.error("Load users error", e);
+            usersTblBody.innerHTML =
+              '<tr><td colspan="6">Network error</td></tr>';
+          }
+        }
+
+        function escapeHtml(s) {
+          return String(s || "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+        }
+
+        // Table button handling (edit / password / delete)
+        usersTblBody.addEventListener("click", (ev) => {
+          const tr = ev.target.closest("tr");
+          if (!tr) return;
+          const id = Number(tr.dataset.id);
+          if (ev.target.closest(".btn-edit")) {
+            openEdit(id);
+          } else if (ev.target.closest(".btn-pwd")) {
+            openPwdModal(id);
+          } else if (ev.target.closest(".btn-del")) {
+            confirmDelete(id);
+          }
+        });
+
+        async function openEdit(id) {
+          userModalTitle.textContent = "Edit user";
+          userFormMsg.textContent = "";
+          deleteUserBtn.classList.add("d-none");
+          try {
+            const r = await fetch("/api/users", { credentials: "same-origin" });
+            if (!r.ok) {
+              setUsersMsg("Failed to fetch user", "danger");
+              return;
+            }
+            const list = await r.json();
+            const user = list.find((u) => Number(u.user_id) === Number(id));
+            if (!user) {
+              setUsersMsg("User not found", "danger");
+              return;
+            }
+            userIdEl.value = user.user_id;
+            userUsername.value = user.username;
+            userFullName.value = user.full_name || "";
+            userEmail.value = user.email || "";
+            userRole.value = user.role || "clerk";
+            userPassword.value = "";
+
+            // hide delete if editing current user
+            if (currentUser && Number(currentUser.user_id) === Number(id)) {
+              deleteUserBtn.classList.add("d-none");
+            } else {
+              deleteUserBtn.classList.remove("d-none");
+            }
+
+            userModal.show();
+          } catch (e) {
+            console.error("Open edit error", e);
+            setUsersMsg("Network error", "danger");
+          }
+        }
+
+        async function confirmDelete(id) {
+          // defensive: prevent deleting your own account
+          if (currentUser && Number(currentUser.user_id) === Number(id)) {
+            setUsersMsg("You cannot delete your own account here", "danger");
+            return;
+          }
+          if (!confirm("Delete user? This cannot be undone")) return;
+          try {
+            const r = await fetch("/api/users/" + id, {
+              method: "DELETE",
+              credentials: "same-origin",
+            });
+            if (!r.ok) {
+              const j = await r.json().catch(() => null);
+              setUsersMsg(
+                j && j.message ? j.message : "Delete failed",
+                "danger"
+              );
+              return;
+            }
+            setUsersMsg("User deleted", "success");
+            await loadUsers();
+          } catch (e) {
+            console.error("Delete error", e);
+            setUsersMsg("Network error", "danger");
+          }
+        }
+
+        userForm.addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          userFormMsg.textContent = "";
+          const id = userIdEl.value ? Number(userIdEl.value) : null;
+          const payload = {
+            username: userUsername.value.trim(),
+            full_name: userFullName.value.trim() || null,
+            email: userEmail.value.trim() || null,
+            role: userRole.value,
+          };
+          try {
+            if (id) {
+              // update user (admin)
+              const r = await fetch("/api/users/" + id, {
+                method: "PUT",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              if (!r.ok) {
+                const j = await r.json().catch(() => null);
+                userFormMsg.textContent =
+                  j && j.message ? j.message : "Update failed";
+                userFormMsg.style.color = "#b33";
+                return;
+              }
+              // if password field populated, set password via admin endpoint
+              if (userPassword.value) {
+                const r2 = await fetch("/api/users/" + id + "/password", {
+                  method: "PATCH",
+                  credentials: "same-origin",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ password: userPassword.value }),
+                });
+                if (!r2.ok) {
+                  const j = await r2.json().catch(() => null);
+                  userFormMsg.textContent =
+                    j && j.message ? j.message : "Password set failed";
+                  userFormMsg.style.color = "#b33";
+                  return;
+                }
+              }
+            } else {
+              // create new user (password required)
+              if (!userPassword.value) {
+                userFormMsg.textContent = "Password required for new user";
+                userFormMsg.style.color = "#b33";
+                return;
+              }
+              payload.password = userPassword.value;
+              const r = await fetch("/api/users", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              if (!r.ok) {
+                const j = await r.json().catch(() => null);
+                userFormMsg.textContent =
+                  j && j.message ? j.message : "Create failed";
+                userFormMsg.style.color = "#b33";
+                return;
+              }
+            }
+            userModal.hide();
+            setUsersMsg(id ? "User updated" : "User created", "success");
+            await loadUsers();
+          } catch (e) {
+            console.error("Save user error", e);
+            userFormMsg.textContent = "Network error";
+            userFormMsg.style.color = "#b33";
+          }
+        });
+
+        deleteUserBtn.addEventListener("click", async () => {
+          const id = Number(userIdEl.value);
+          if (!id) return;
+          // defensive: don't allow deleting self here
+          if (currentUser && Number(currentUser.user_id) === Number(id)) {
+            userFormMsg.textContent = "Cannot delete your own account";
+            userFormMsg.style.color = "#b33";
+            return;
+          }
+          if (!confirm("Delete user? This cannot be undone")) return;
+          try {
+            const r = await fetch("/api/users/" + id, {
+              method: "DELETE",
+              credentials: "same-origin",
+            });
+            if (!r.ok) {
+              const j = await r.json().catch(() => null);
+              userFormMsg.textContent =
+                j && j.message ? j.message : "Delete failed";
+              userFormMsg.style.color = "#b33";
+              return;
+            }
+            userModal.hide();
+            setUsersMsg("User deleted", "success");
+            await loadUsers();
+          } catch (e) {
+            console.error("Delete user error", e);
+            userFormMsg.textContent = "Network error";
+            userFormMsg.style.color = "#b33";
+          }
+        });
+
+        function openPwdModal(id) {
+          pwdUserId.value = id;
+          newPwd.value = "";
+          changePwdMsg.textContent = "";
+          changePwdModal.show();
+        }
+
+        changePwdForm.addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          const id = Number(pwdUserId.value);
+          const pwd = newPwd.value;
+          if (!pwd) {
+            changePwdMsg.textContent = "Password required";
+            changePwdMsg.style.color = "#b33";
+            return;
+          }
+          try {
+            // admin sets password directly
+            const r = await fetch("/api/users/" + id + "/password", {
+              method: "PATCH",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ password: pwd }),
+            });
+            if (!r.ok) {
+              const j = await r.json().catch(() => null);
+              changePwdMsg.textContent = j && j.message ? j.message : "Failed";
+              changePwdMsg.style.color = "#b33";
+              return;
+            }
+            changePwdModal.hide();
+            setUsersMsg("Password updated", "success");
+          } catch (e) {
+            console.error("Change pwd error", e);
+            changePwdMsg.textContent = "Network error";
+            changePwdMsg.style.color = "#b33";
+          }
+        });
+
+        // initial check
+        await checkAuth();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Products — Inventory</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --muted: #6b7280;
+        --accent: #0d6efd;
+        --card-bg: #ffffff;
+        --page-bg: #f7f8fa;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+        padding-top: 76px; /* match other pages */
+        background: var(--page-bg);
+        color: #111827;
+      }
+
+      .container-lg {
+        max-width: 1100px;
+      }
+
+      /* NAVBAR - keep same height as index/admin pages */
+      .navbar {
+        height: 56px;
+      }
+      .navbar .navbar-brand {
+        line-height: 1;
+      }
+      .navbar .bi {
+        transform: translateY(-1px);
+      }
+
+      h3 {
+        margin-bottom: 0;
+      }
+
+      .small-muted {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .card-panel {
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 14px;
+        border: 1px solid #eef0f2;
+        box-shadow: none;
+      }
+
+      table th,
+      table td {
+        vertical-align: middle !important;
+        /* consistent horizontal padding so headers line up with cells */
+        padding: 0.65rem 0.75rem;
+      }
+
+      /* fix actions alignment: header and cells should be same alignment */
+      .actions-col {
+        width: 150px;
+      }
+      .controls {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        align-items: center;
+      }
+
+      .out-stock {
+        color: #b33;
+        font-weight: 600;
+      }
+
+      /* responsive header actions */
+      .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      @media (max-width: 575px) {
+        .header-actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
+
+      /* modal tweaks */
+      .modal .form-label.small {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .formMsg,
+      #msg {
+        font-size: 0.95rem;
+        color: var(--muted);
+        margin-top: 0.4rem;
+      }
+
+      footer.site-footer {
+        margin-top: 12px;
+        margin-bottom: 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      /* Not-auth placeholder */
+      .not-auth-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1rem;
+        color: var(--muted);
+      }
+      .not-auth-card {
+        width: 100%;
+        max-width: 720px;
+        text-align: center;
+        padding: 2rem;
+        border-radius: 12px;
+        border: 1px solid #eef0f2;
+        background: #fff;
+      }
+      .not-auth-card h2 {
+        font-size: 1.6rem;
+        margin-bottom: 0.5rem;
+      }
+      .not-auth-card p {
+        font-size: 1.05rem;
+        color: var(--muted);
+        margin-bottom: 1rem;
+      }
+      .btn-signin {
+        font-size: 1rem;
+        padding: 0.6rem 1.1rem;
+      }
+
+      /* sortable header styles */
+      th.sortable {
+        cursor: pointer;
+        user-select: none;
+      }
+      /* make the visual indicator part of the header and don't push text */
+      th .th-inner {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      th.sortable .sort-indicator {
+        margin-left: 6px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        opacity: 0.6;
+        line-height: 1;
+        display: inline-block;
+        min-width: 1.1em;
+        text-align: center;
+      }
+      th.sortable:focus,
+      th.sortable:hover {
+        background: rgba(13, 110, 253, 0.03);
+      }
+      /* active sort gets highlighted color and full opacity */
+      th.sortable[aria-sort="ascending"] .sort-indicator,
+      th.sortable[aria-sort="descending"] .sort-indicator {
+        opacity: 1;
+        color: var(--accent);
+      }
+
+      /* small accessibility focus style */
+      th.sortable:focus {
+        outline: 3px solid rgba(13, 110, 253, 0.12);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAVBAR -->
+    <nav
+      class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top"
+    >
+      <div class="container-lg">
+        <a class="navbar-brand d-flex gap-2 align-items-center" href="/"
+          ><i class="bi bi-box-seam fs-4 text-primary"></i
+          ><span class="fw-semibold">Inv-Sales</span></a
+        >
+
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <span id="navUser" class="small-muted">Checking login…</span>
+          <a
+            id="navUsers"
+            class="btn btn-sm btn-outline-secondary d-none"
+            href="/users.html"
+            >Users</a
+          >
+          <a
+            id="navLogin"
+            class="btn btn-sm btn-outline-primary d-none"
+            href="/login.html?next=/products.html"
+            >Login</a
+          >
+          <button
+            id="navLogout"
+            class="btn btn-sm btn-outline-secondary d-none"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container-lg mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h3>Products</h3>
+          <div class="small-muted">
+            Manage products — inventory / admin only
+          </div>
+        </div>
+
+        <div id="headerControls" class="header-actions">
+          <button id="refreshBtn" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+          <button id="btnAddToggle" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Add product
+          </button>
+        </div>
+      </div>
+
+      <!-- SEARCH ROW (hidden when logged out) -->
+      <div id="searchRow" class="card-panel mb-3">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-5">
+            <label class="form-label small">Search</label>
+            <input
+              id="q"
+              class="form-control"
+              placeholder="Search products (name, sku or any word). Press Enter to search."
+            />
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label small">&nbsp;</label>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="showOutstock"
+              />
+              <label class="form-check-label small" for="showOutstock"
+                >Show out-of-stock</label
+              >
+            </div>
+          </div>
+
+          <div class="col-md-4 text-md-end d-none d-md-block">
+            <div class="small-muted">
+              Tip: use partial words — e.g., "Syrup" will match "Chocolate
+              Syrup"
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN TABLE -->
+      <div class="card-panel">
+        <div id="tableContainer" class="table-responsive">
+          <table class="table table-hover table-sm align-middle" id="tbl">
+            <thead>
+              <tr>
+                <th
+                  class="sortable"
+                  data-sort="product_id"
+                  style="width: 60px"
+                  tabindex="0"
+                  role="button"
+                  title="Click to sort"
+                >
+                  <span class="th-inner"
+                    >ID
+                    <span class="sort-indicator" aria-hidden="true"
+                      >⇅</span
+                    ></span
+                  >
+                </th>
+                <th style="width: 120px">SKU</th>
+                <th
+                  class="sortable"
+                  data-sort="name"
+                  tabindex="0"
+                  role="button"
+                  title="Click to sort"
+                >
+                  <span class="th-inner"
+                    >Name
+                    <span class="sort-indicator" aria-hidden="true"
+                      >⇅</span
+                    ></span
+                  >
+                </th>
+                <th
+                  class="sortable text-center"
+                  data-sort="quantity"
+                  style="width: 80px"
+                  tabindex="0"
+                  role="button"
+                  title="Click to sort"
+                >
+                  <span class="th-inner"
+                    >Qty
+                    <span class="sort-indicator" aria-hidden="true"
+                      >⇅</span
+                    ></span
+                  >
+                </th>
+                <th class="text-center" style="width: 90px">Reorder</th>
+                <th
+                  class="sortable text-end"
+                  data-sort="price"
+                  style="width: 100px"
+                  tabindex="0"
+                  role="button"
+                  title="Click to sort"
+                >
+                  <span class="th-inner"
+                    >Price
+                    <span class="sort-indicator" aria-hidden="true"
+                      >⇅</span
+                    ></span
+                  >
+                </th>
+                <th class="text-end actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <!-- Not-auth placeholder (only visible when logged out) -->
+        <div id="notAuthPanel" class="not-auth-placeholder d-none">
+          <div class="not-auth-card">
+            <h2>Products are private</h2>
+            <p>You must be signed in to view or manage products.</p>
+            <div class="mt-3">
+              <button id="viewProductsBtn" class="btn btn-primary btn-signin">
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="msg" class="formMsg mt-2"></div>
+      </div>
+
+      <footer class="site-footer">
+        Inv-Sales demo • Node · Express · MySQL
+      </footer>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="productModalTitle" class="modal-title">Add product</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="productForm" class="mb-0">
+              <input type="hidden" id="productId" />
+              <div class="mb-2">
+                <label class="form-label small">SKU</label>
+                <input id="productSku" class="form-control" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label small">Name</label>
+                <input id="productName" class="form-control" required />
+              </div>
+
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <label class="form-label small">Quantity</label>
+                  <input
+                    id="productQty"
+                    type="number"
+                    min="0"
+                    class="form-control"
+                    value="0"
+                  />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small">Reorder level</label>
+                  <input
+                    id="productReorder"
+                    type="number"
+                    min="0"
+                    class="form-control"
+                    value="0"
+                  />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small">Price</label>
+                  <input
+                    id="productPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="form-control"
+                    value="0.00"
+                  />
+                </div>
+              </div>
+
+              <div class="mt-2 form-check">
+                <input
+                  id="productActive"
+                  class="form-check-input"
+                  type="checkbox"
+                  checked
+                />
+                <label class="form-check-label small" for="productActive"
+                  >Active</label
+                >
+              </div>
+
+              <div id="formMsg" class="formMsg"></div>
+
+              <div class="mt-3 d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  id="deleteBtn"
+                  class="btn btn-outline-danger d-none"
+                >
+                  Delete
+                </button>
+                <button type="submit" id="saveBtn" class="btn btn-primary">
+                  Save
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      (async function () {
+        // Navbar auth
+        const navUser = document.getElementById("navUser"),
+          navUsers = document.getElementById("navUsers"),
+          navLogin = document.getElementById("navLogin"),
+          navLogout = document.getElementById("navLogout");
+        let currentUser = null;
+
+        // UI elements that need toggling
+        const headerControls = document.getElementById("headerControls");
+        const searchRow = document.getElementById("searchRow");
+        const qEl = document.getElementById("q");
+        const refreshBtn = document.getElementById("refreshBtn"),
+          btnAddToggle = document.getElementById("btnAddToggle"),
+          showOutstock = document.getElementById("showOutstock");
+        const tbody = document.querySelector("#tbl tbody"),
+          msg = document.getElementById("msg");
+        const notAuthPanel = document.getElementById("notAuthPanel");
+        const viewProductsBtn = document.getElementById("viewProductsBtn");
+        const tableContainer = document.getElementById("tableContainer");
+
+        // Product modal refs
+        const productModalEl = document.getElementById("productModal"),
+          productModal = new bootstrap.Modal(productModalEl);
+        const productModalTitle = document.getElementById("productModalTitle");
+        const productForm = document.getElementById("productForm"),
+          productIdEl = document.getElementById("productId"),
+          productSku = document.getElementById("productSku"),
+          productName = document.getElementById("productName"),
+          productQty = document.getElementById("productQty"),
+          productReorder = document.getElementById("productReorder"),
+          productPrice = document.getElementById("productPrice"),
+          productActive = document.getElementById("productActive"),
+          formMsg = document.getElementById("formMsg"),
+          deleteBtn = document.getElementById("deleteBtn");
+
+        // Sort state with persistence
+        let sortField =
+          localStorage.getItem("products_sort_field") || "product_id";
+        let sortDir = localStorage.getItem("products_sort_dir") || "asc";
+
+        // helper to set message
+        function setMsg(t, kind = "info", timeout = 2500) {
+          msg.textContent = t || "";
+          msg.style.color =
+            kind === "danger"
+              ? "#b33"
+              : kind === "success"
+              ? "green"
+              : "var(--muted)";
+          if (timeout && timeout > 0)
+            setTimeout(() => {
+              if (msg.textContent === t) msg.textContent = "";
+            }, timeout);
+        }
+
+        // simple debounce
+        function debounce(fn, wait = 250) {
+          let t;
+          return function (...a) {
+            clearTimeout(t);
+            t = setTimeout(() => fn.apply(this, a), wait);
+          };
+        }
+
+        // Initialize sortable headers: set title/role attributes (helps when HTML missing)
+        document.querySelectorAll("#tbl thead th.sortable").forEach((th) => {
+          if (!th.hasAttribute("role")) th.setAttribute("role", "button");
+          if (!th.hasAttribute("title"))
+            th.setAttribute("title", "Click to sort");
+        });
+
+        // Apply sort indicator visuals in header
+        function updateSortIndicators() {
+          const ths = document.querySelectorAll("#tbl thead th.sortable");
+          ths.forEach((th) => {
+            const field = th.dataset.sort;
+            const ind = th.querySelector(".sort-indicator");
+            if (!ind) return;
+            if (field === sortField) {
+              ind.textContent = sortDir === "asc" ? "▲" : "▼";
+              th.setAttribute(
+                "aria-sort",
+                sortDir === "asc" ? "ascending" : "descending"
+              );
+            } else {
+              ind.textContent = "⇅";
+              th.removeAttribute("aria-sort");
+            }
+          });
+        }
+
+        // check auth and adjust UI accordingly
+        async function checkAuthAndAdjustUI() {
+          try {
+            const r = await fetch("/api/auth/me", {
+              credentials: "same-origin",
+            });
+            if (!r.ok) {
+              // not logged in
+              currentUser = null;
+              navUser.textContent = "Not logged in";
+              navLogin.classList.remove("d-none");
+              navLogout.classList.add("d-none");
+              navUsers.classList.add("d-none");
+
+              // hide search + header controls, show placeholder
+              headerControls.classList.add("d-none");
+              searchRow.classList.add("d-none");
+              notAuthPanel.classList.remove("d-none");
+
+              // hide the entire table area (we'll show only placeholder)
+              tableContainer.classList.add("d-none");
+              // ensure sort indicators still reflect saved state
+              updateSortIndicators();
+              return;
+            }
+            const j = await r.json();
+            currentUser = j;
+            navUser.textContent = `User: ${j.username} (${j.role})`;
+            navLogin.classList.add("d-none");
+            navLogout.classList.remove("d-none");
+
+            // show Users nav only to admin
+            if (j.role === "admin") navUsers.classList.remove("d-none");
+            else navUsers.classList.add("d-none");
+
+            // show controls
+            headerControls.classList.remove("d-none");
+            searchRow.classList.remove("d-none");
+            notAuthPanel.classList.add("d-none");
+            tableContainer.classList.remove("d-none");
+
+            // if user cannot add (not inventory/admin) hide add button
+            if (
+              currentUser.role !== "inventory" &&
+              currentUser.role !== "admin"
+            ) {
+              btnAddToggle.classList.add("d-none");
+            } else {
+              btnAddToggle.classList.remove("d-none");
+            }
+
+            // load products now that we are authenticated
+            await load(qEl.value.trim(), showOutstock.checked);
+          } catch (e) {
+            // error during auth check -> treat as not logged in
+            console.error("Auth check failed", e);
+            currentUser = null;
+            navUser.textContent = "Auth check failed";
+            navLogin.classList.remove("d-none");
+            navLogout.classList.add("d-none");
+            navUsers.classList.add("d-none");
+            headerControls.classList.add("d-none");
+            searchRow.classList.add("d-none");
+            notAuthPanel.classList.remove("d-none");
+            tableContainer.classList.add("d-none");
+            // ensure indicators initialized from saved state so user still sees which columns are sortable
+            updateSortIndicators();
+          }
+        }
+
+        // initial check
+        await checkAuthAndAdjustUI();
+
+        navLogout.addEventListener("click", async () => {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+          });
+          // after logout refresh UI
+          await checkAuthAndAdjustUI();
+        });
+
+        // Build query params and fetch products only when user is authenticated
+        async function load(q = "", showOut = false) {
+          // don't call server if not authenticated (UI already handles this)
+          if (!currentUser) {
+            tbody.innerHTML = "";
+            updateSortIndicators();
+            return;
+          }
+
+          tbody.innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
+          try {
+            const params = new URLSearchParams();
+            if (q) params.set("q", q);
+            if (showOut) params.set("show_out_of_stock", "1");
+            const r = await fetch(
+              "/api/products" +
+                (params.toString() ? "?" + params.toString() : ""),
+              { credentials: "same-origin" }
+            );
+            if (!r.ok) {
+              const txt = await r.text().catch(() => null);
+              tbody.innerHTML = '<tr><td colspan="7">Error loading</td></tr>';
+              setMsg("Products load error", "danger", 4000);
+              console.error("Products load failed:", r.status, txt);
+              return;
+            }
+            const data = await r.json();
+            if (!Array.isArray(data) || !data.length) {
+              tbody.innerHTML = '<tr><td colspan="7">No products</td></tr>';
+              updateSortIndicators();
+              return;
+            }
+
+            // Sort client-side according to sortField / sortDir
+            data.sort((a, b) => {
+              const dir = sortDir === "asc" ? 1 : -1;
+              if (sortField === "product_id") {
+                return (
+                  (Number(a.product_id || 0) - Number(b.product_id || 0)) * dir
+                );
+              } else if (sortField === "name") {
+                const A = String(a.name || "").toLowerCase();
+                const B = String(b.name || "").toLowerCase();
+                if (A < B) return -1 * dir;
+                if (A > B) return 1 * dir;
+                return 0;
+              } else if (sortField === "quantity") {
+                return (
+                  (Number(a.quantity || 0) - Number(b.quantity || 0)) * dir
+                );
+              } else if (sortField === "price") {
+                return (Number(a.price || 0) - Number(b.price || 0)) * dir;
+              }
+              return 0;
+            });
+
+            // Render rows (note alignment classes match headers)
+            tbody.innerHTML = data
+              .map((p) => {
+                const qtyCell =
+                  p.quantity === 0
+                    ? '<span class="out-stock">0</span>'
+                    : p.quantity;
+                // show edit/delete only to inventory/admin
+                const canEdit =
+                  currentUser &&
+                  (currentUser.role === "admin" ||
+                    currentUser.role === "inventory");
+                return `<tr data-id="${p.product_id}">
+                    <td>${p.product_id}</td>
+                    <td>${p.sku || ""}</td>
+                    <td>${p.name}</td>
+                    <td class="text-center">${qtyCell}</td>
+                    <td class="text-center">${p.reorder_level || 0}</td>
+                    <td class="text-end">${Number(p.price).toFixed(2)}</td>
+                    <td class="text-end actions-col"><div class="controls">
+                      ${
+                        canEdit
+                          ? `<button class="btn btn-sm btn-outline-secondary editBtn" data-id="${p.product_id}" title="Edit"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger delBtn" data-id="${p.product_id}" title="Delete"><i class="bi bi-trash"></i></button>`
+                          : ""
+                      }
+                    </div></td>
+                  </tr>`;
+              })
+              .join("");
+
+            updateSortIndicators();
+          } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="7">Network error</td></tr>';
+            setMsg("Network error", "danger");
+            console.error("Products load exception", e);
+          }
+        }
+
+        // sorting header wiring
+        const sortableThs = document.querySelectorAll("#tbl thead th.sortable");
+        sortableThs.forEach((th) => {
+          th.addEventListener("click", () => {
+            const field = th.dataset.sort;
+            if (!field) return;
+            if (field === sortField) {
+              // toggle
+              sortDir = sortDir === "asc" ? "desc" : "asc";
+            } else {
+              sortField = field;
+              sortDir = "asc";
+            }
+            // persist
+            try {
+              localStorage.setItem("products_sort_field", sortField);
+              localStorage.setItem("products_sort_dir", sortDir);
+            } catch (e) {}
+            // reload current listing (keeps query/search params)
+            load(qEl.value.trim(), showOutstock.checked);
+          });
+          // allow keyboard activation for accessibility
+          th.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              th.click();
+            }
+          });
+        });
+
+        // search wiring
+        const debouncedLoad = debounce(
+          () => load(qEl.value.trim(), showOutstock.checked),
+          250
+        );
+        qEl.addEventListener("input", debouncedLoad);
+        qEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") load(qEl.value.trim(), showOutstock.checked);
+        });
+        refreshBtn.addEventListener("click", () =>
+          load(qEl.value, showOutstock.checked)
+        );
+        showOutstock.addEventListener("change", () =>
+          load(qEl.value, showOutstock.checked)
+        );
+
+        // Add product toggle -> open modal in Add mode (ensure role)
+        btnAddToggle.addEventListener("click", async () => {
+          await checkAuthAndAdjustUI();
+          if (
+            !currentUser ||
+            (currentUser.role !== "admin" && currentUser.role !== "inventory")
+          ) {
+            setMsg(
+              "Only inventory/admin users may add products",
+              "danger",
+              3000
+            );
+            return;
+          }
+          productModalTitle.textContent = "Add product";
+          productIdEl.value = "";
+          productSku.value = "";
+          productName.value = "";
+          productQty.value = "0";
+          productReorder.value = "0";
+          productPrice.value = "0.00";
+          productActive.checked = true;
+          formMsg.textContent = "";
+          deleteBtn.classList.add("d-none");
+          productModal.show();
+        });
+
+        // Table actions (edit/delete)
+        tbody.addEventListener("click", async (ev) => {
+          const e = ev.target.closest("button.editBtn");
+          const d = ev.target.closest("button.delBtn");
+
+          if (e) {
+            const id = e.dataset.id;
+            editProduct(id);
+            return;
+          }
+          if (d) {
+            const id = d.dataset.id;
+            if (!confirm("Delete product? This cannot be undone")) return;
+            try {
+              const r = await fetch("/api/products/" + id, {
+                method: "DELETE",
+                credentials: "same-origin",
+              });
+              if (!r.ok) {
+                const j = await r.json().catch(() => null);
+                setMsg(
+                  j && j.message ? j.message : "Delete failed",
+                  "danger",
+                  4000
+                );
+              } else {
+                setMsg("Product deleted", "success", 2000);
+                load(qEl.value, showOutstock.checked);
+              }
+            } catch (err) {
+              setMsg("Network error", "danger", 3000);
+            }
+            return;
+          }
+        });
+
+        // Edit product (populate modal) - same as before
+        async function editProduct(id) {
+          await checkAuthAndAdjustUI();
+          try {
+            const r2 = await fetch(
+              "/api/products/ids?ids=" + encodeURIComponent(String(id)),
+              { credentials: "same-origin" }
+            );
+            if (!r2.ok) {
+              setMsg("Failed to fetch product", "danger");
+              return;
+            }
+            const items = await r2.json();
+            if (!items.length) {
+              setMsg("Product not found", "danger");
+              return;
+            }
+            const p = items[0];
+            productModalTitle.textContent = "Edit product";
+            productIdEl.value = p.product_id;
+            productSku.value = p.sku || "";
+            productName.value = p.name;
+            productQty.value = p.quantity || 0;
+            productReorder.value = p.reorder_level || 0;
+            productPrice.value = p.price || 0.0;
+            productActive.checked = true;
+            formMsg.textContent = "";
+            deleteBtn.classList.remove("d-none");
+            productModal.show();
+          } catch (err) {
+            setMsg("Network error fetching product", "danger");
+          }
+        }
+
+        // Save product (create or update) - same behavior
+        productForm.addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          formMsg.textContent = "";
+          const id = productIdEl.value && Number(productIdEl.value);
+          const payload = {
+            sku: productSku.value.trim() || null,
+            name: productName.value.trim(),
+            quantity: Math.max(0, Math.floor(Number(productQty.value || 0))),
+            reorder_level: Math.max(
+              0,
+              Math.floor(Number(productReorder.value || 0))
+            ),
+            price: Number(Number(productPrice.value || 0).toFixed(2)),
+            active: productActive.checked ? 1 : 0,
+          };
+          if (!payload.name) {
+            formMsg.textContent = "Name is required";
+            formMsg.style.color = "#b33";
+            return;
+          }
+
+          // Prevent attempting to save if user isn't authenticated (UI should have blocked but double check)
+          if (!currentUser) {
+            formMsg.textContent = "Not authenticated — save blocked";
+            formMsg.style.color = "#b33";
+            return;
+          }
+
+          try {
+            let r;
+            if (id) {
+              r = await fetch("/api/products/" + id, {
+                method: "PUT",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+            } else {
+              r = await fetch("/api/products", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+            }
+            const j = await r.json().catch(() => null);
+            if (!r.ok) {
+              formMsg.textContent =
+                j && (j.error || j.message)
+                  ? j.error || j.message
+                  : "Save failed";
+              formMsg.style.color = "#b33";
+              return;
+            }
+            formMsg.textContent = "Saved";
+            formMsg.style.color = "green";
+            productModal.hide();
+            load(qEl.value, showOutstock.checked);
+            setMsg(id ? "Product updated" : "Product added", "success", 2000);
+          } catch (err) {
+            formMsg.textContent = "Network error";
+            formMsg.style.color = "#b33";
+          }
+        });
+
+        deleteBtn.addEventListener("click", async () => {
+          const id = productIdEl.value && Number(productIdEl.value);
+          if (!id) return;
+          if (!confirm("Delete product? This cannot be undone")) return;
+          try {
+            const r = await fetch("/api/products/" + id, {
+              method: "DELETE",
+              credentials: "same-origin",
+            });
+            if (!r.ok) {
+              const j = await r.json().catch(() => null);
+              formMsg.textContent =
+                j && (j.message || j.error)
+                  ? j.message || j.error
+                  : "Delete failed";
+              formMsg.style.color = "#b33";
+              return;
+            }
+            productModal.hide();
+            load(qEl.value, showOutstock.checked);
+            setMsg("Product deleted", "success", 2000);
+          } catch (err) {
+            formMsg.textContent = "Network error";
+            formMsg.style.color = "#b33";
+          }
+        });
+
+        // "Sign In" button (shown when logged out)
+        viewProductsBtn.addEventListener("click", () => {
+          // redirect to login with next back to products
+          location.href = "/login.html?next=/products.html";
+        });
+
+        // initial load when page opens: if authenticated load products, else show placeholder panel
+        if (currentUser) {
+          await load("", false);
+        } else {
+          // ensure indicators initialized
+          updateSortIndicators();
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>POS — Inventory</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --muted: #6b7280;
+        --accent: #0d6efd;
+        --card-bg: #ffffff;
+        --page-bg: #f7f8fa;
+      }
+
+      body {
+        font-family: Inter, system-ui;
+        padding-top: 76px;
+        background: var(--page-bg);
+        color: #111827;
+      }
+
+      .container-lg {
+        max-width: 1100px;
+      }
+
+      /* NAVBAR (match index.html) */
+      .navbar {
+        height: 56px;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 2px 6px rgba(2, 6, 23, 0.04);
+      }
+      .navbar-brand {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        font-weight: 600;
+        font-size: 1.05rem;
+      }
+      .navbar .bi {
+        color: var(--accent);
+        transform: translateY(-1px);
+      }
+
+      /* PANELS */
+      .card-panel {
+        background: var(--card-bg);
+        border: 1px solid #eef0f2;
+        border-radius: 12px;
+        box-shadow: 0 6px 14px rgba(16, 24, 40, 0.04);
+        padding: 12px;
+      }
+
+      /* PRODUCT LIST */
+      .product-list,
+      .cart-list {
+        max-height: 320px;
+        overflow-y: auto;
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .list-group-item {
+        border: none;
+        border-bottom: 1px solid #f0f0f3;
+      }
+      .list-group-item:last-child {
+        border-bottom: none;
+      }
+
+      .search-row .form-control {
+        border-radius: 0.5rem;
+      }
+      .search-row .btn {
+        border-radius: 0.5rem;
+      }
+
+      /* CART SECTION */
+      .cart-section h5 {
+        font-weight: 600;
+        font-size: 1.15rem;
+        margin-bottom: 0.4rem;
+      }
+      .cart-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .cart-panel {
+        background: var(--card-bg);
+        border: 1px solid #eef0f2;
+        border-radius: 12px;
+        box-shadow: 0 6px 14px rgba(16, 24, 40, 0.04);
+        padding: 10px;
+        min-height: auto; /* allow natural expansion */
+      }
+      .cart-list:empty {
+        min-height: 0;
+        padding: 0;
+      }
+
+      .cart-list .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.85rem;
+      }
+      .cart-list input.qty {
+        text-align: center;
+        border-radius: 0.35rem;
+        border: 1px solid #ced4da;
+        font-size: 0.95rem;
+        width: 68px;
+      }
+
+      .btn-confirm {
+        min-width: 160px;
+        font-weight: 600;
+      }
+
+      .small-muted {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .low-warning {
+        color: #b45;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+      }
+      .inline-error {
+        color: #b33;
+        font-size: 0.9rem;
+      }
+
+      /* custom confirm modal tweaks so it matches app style */
+      .confirm-modal .modal-content {
+        border-radius: 12px;
+        border: 1px solid #eef0f2;
+      }
+      .confirm-modal .modal-header {
+        border-bottom: none;
+      }
+      .confirm-modal .modal-body {
+        font-size: 0.98rem;
+        color: #374151;
+      }
+
+      /* Not-auth placeholder (same pattern as products page) */
+      .not-auth-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2.2rem 1rem;
+        color: var(--muted);
+      }
+      .not-auth-card {
+        width: 100%;
+        max-width: 720px;
+        text-align: center;
+        padding: 2rem;
+        border-radius: 12px;
+        border: 1px solid #eef0f2;
+        background: #fff;
+      }
+      .not-auth-card h2 {
+        font-size: 1.3rem;
+        margin-bottom: 0.4rem;
+      }
+      .not-auth-card p {
+        font-size: 1rem;
+        color: var(--muted);
+        margin-bottom: 1rem;
+      }
+      .btn-signin {
+        font-size: 1rem;
+        padding: 0.5rem 0.9rem;
+      }
+
+      /* Disabled button styling: visually lightened and non-selectable */
+      .btn[disabled] {
+        opacity: 0.65;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+      }
+
+      @media (max-width: 767px) {
+        .cart-list {
+          max-height: 260px;
+        }
+        .product-list {
+          max-height: 260px;
+        }
+        .qty {
+          width: 56px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
+      <div class="container-lg">
+        <a class="navbar-brand" href="/">
+          <i class="bi bi-box-seam fs-4"></i>
+          <span class="fw-semibold">Inv-Sales</span>
+        </a>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <span id="posUser" class="small-muted">Checking login…</span>
+          <a
+            id="posUsers"
+            class="btn btn-sm btn-outline-secondary d-none"
+            href="/users.html"
+            >Users</a
+          >
+          <a
+            id="posLogin"
+            class="btn btn-sm btn-outline-primary"
+            href="/login.html?next=/pos.html"
+            >Login</a
+          >
+          <button
+            id="posLogout"
+            class="btn btn-sm btn-outline-secondary d-none"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container-lg pos mt-4 mb-4">
+      <!-- Page heading (added for clarity / consistency) -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h4 class="mb-0">POS — Point of Sale</h4>
+          <div class="small-muted">
+            Quick checkout — create sales from the counter
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <!-- Left: search & products -->
+        <div class="col-lg-7">
+          <div class="card-panel">
+            <div id="searchRow" class="mb-3 search-row d-flex gap-2">
+              <input
+                id="search"
+                class="form-control"
+                placeholder="Search products..."
+              />
+              <button id="clearSearch" class="btn btn-outline-secondary">
+                Clear
+              </button>
+            </div>
+
+            <!-- product results area (hidden when not authenticated) -->
+            <ul id="results" class="list-group product-list"></ul>
+
+            <!-- placeholder shown when not authenticated -->
+            <div id="notAuthPanel" class="not-auth-placeholder d-none">
+              <div class="not-auth-card">
+                <h2>Products are private</h2>
+                <p>You must be signed in to view products.</p>
+                <div>
+                  <button
+                    id="viewProductsBtn"
+                    class="btn btn-primary btn-signin"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: cart -->
+        <div class="col-lg-5">
+          <div class="cart-section">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Cart</h5>
+              <div class="small-muted">You: <span id="cartUser">—</span></div>
+            </div>
+            <div class="cart-panel">
+              <ul id="cart" class="list-group cart-list mb-3 mt-1"></ul>
+              <div
+                class="d-flex justify-content-between align-items-center mb-3"
+              >
+                <div>
+                  <div class="small-muted">Total</div>
+                  <div id="total" class="fs-4 fw-semibold">$0.00</div>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                  <button
+                    id="confirmBtn"
+                    class="btn btn-success btn-confirm"
+                    disabled
+                  >
+                    Login to confirm
+                  </button>
+                  <button id="clearCart" class="btn btn-outline-secondary">
+                    Clear cart
+                  </button>
+                </div>
+              </div>
+              <div id="posMsg" class="small-muted mb-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Success modal -->
+    <div
+      class="modal fade"
+      id="saleSuccessModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Sale recorded</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p id="saleSuccessText" class="mb-2"></p>
+            <div class="small-muted" id="saleSuccessMeta"></div>
+          </div>
+          <div class="modal-footer">
+            <button id="openInvoiceBtn" type="button" class="btn btn-primary">
+              Open Invoice
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Clear Cart confirmation modal -->
+    <div
+      class="modal fade confirm-modal"
+      id="clearCartModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body">
+            <div class="d-flex gap-3 align-items-start">
+              <div style="font-size: 1.6rem; color: var(--muted)">
+                <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+              </div>
+              <div>
+                <h6 class="mb-1">Clear cart?</h6>
+                <div class="small-muted">
+                  This will remove all items from the cart. This action cannot
+                  be undone.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              id="confirmClearBtn"
+              type="button"
+              class="btn btn-danger btn-sm"
+            >
+              Clear cart
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      (async function () {
+        // DOM refs
+        const searchEl = document.getElementById("search"),
+          resultsEl = document.getElementById("results"),
+          clearSearch = document.getElementById("clearSearch");
+        const cartEl = document.getElementById("cart"),
+          totalEl = document.getElementById("total"),
+          confirmBtn = document.getElementById("confirmBtn"),
+          clearCart = document.getElementById("clearCart"),
+          posMsg = document.getElementById("posMsg"),
+          cartUser = document.getElementById("cartUser");
+
+        const posUser = document.getElementById("posUser"),
+          posUsers = document.getElementById("posUsers"),
+          posLogin = document.getElementById("posLogin"),
+          posLogout = document.getElementById("posLogout");
+
+        const saleModalEl = document.getElementById("saleSuccessModal");
+        const saleModal = new bootstrap.Modal(saleModalEl);
+        const saleSuccessText = document.getElementById("saleSuccessText");
+        const saleSuccessMeta = document.getElementById("saleSuccessMeta");
+        const openInvoiceBtn = document.getElementById("openInvoiceBtn");
+
+        // Clear-cart modal refs
+        const clearCartModalEl = document.getElementById("clearCartModal");
+        const clearCartModal = new bootstrap.Modal(clearCartModalEl);
+        const confirmClearBtn = document.getElementById("confirmClearBtn");
+
+        // Not-auth panel
+        const notAuthPanel = document.getElementById("notAuthPanel");
+        const viewProductsBtn = document.getElementById("viewProductsBtn");
+        const searchRow = document.getElementById("searchRow");
+
+        // small helpers
+        function setPosMsg(text, kind = "info", timeout = 4000) {
+          posMsg.textContent = text || "";
+          posMsg.style.color =
+            kind === "danger"
+              ? "#b33"
+              : kind === "success"
+              ? "green"
+              : "var(--muted)";
+          if (timeout && timeout > 0) {
+            setTimeout(() => {
+              if (posMsg.textContent === text) posMsg.textContent = "";
+            }, timeout);
+          }
+        }
+
+        function escapeHtml(s) {
+          return String(s || "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+        }
+
+        function debounce(fn, wait = 200) {
+          let t;
+          return function (...a) {
+            clearTimeout(t);
+            t = setTimeout(() => fn.apply(this, a), wait);
+          };
+        }
+
+        // Auth-aware UI
+        let currentUser = null;
+
+        // Cart representation: Map<product_id, {product_id, name, sku, price, qty, stock, reorder_level}>
+        const cart = new Map();
+
+        // Storage key and helpers
+        const STORAGE_KEY = "inv_sales_pos_cart_v1";
+        function saveCartToStorage() {
+          try {
+            const arr = Array.from(cart.values());
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+          } catch (e) {
+            console.warn("Failed to save cart to storage", e);
+          }
+        }
+
+        function loadCartFromStorage() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const arr = JSON.parse(raw);
+            if (!Array.isArray(arr)) return;
+            for (const it of arr) {
+              if (!it || typeof it.product_id === "undefined") continue;
+              const entry = {
+                product_id: Number(it.product_id),
+                name: it.name || "",
+                sku: it.sku || "",
+                price: Number(it.price || 0),
+                qty: Number(it.qty || 0),
+                stock: typeof it.stock !== "undefined" ? Number(it.stock) : 0,
+                reorder_level:
+                  typeof it.reorder_level !== "undefined"
+                    ? Number(it.reorder_level)
+                    : 0,
+              };
+              if (entry.qty > entry.stock) {
+                entry._error = `Only ${entry.stock} available`;
+              }
+              cart.set(entry.product_id, entry);
+            }
+          } catch (e) {
+            console.warn("Failed to load cart from storage", e);
+          }
+        }
+
+        // Manage clearCart enabled/disabled and tooltip
+        function updateClearCartState() {
+          const shouldDisable = cart.size === 0 || !currentUser;
+          clearCart.disabled = shouldDisable;
+          clearCart.title = shouldDisable
+            ? !currentUser
+              ? "Login to clear cart"
+              : "Cart is empty"
+            : "Clear cart";
+        }
+
+        // Render cart items (includes low-stock warnings and inline qty validation)
+        function renderCart() {
+          cartEl.innerHTML = "";
+          let total = 0;
+          for (const [id, item] of cart.entries()) {
+            total += item.qty * item.price;
+            const remaining =
+              (typeof item.stock === "number" ? item.stock : 0) - item.qty;
+            const lowWarn =
+              typeof item.reorder_level === "number" &&
+              remaining <= item.reorder_level;
+            const li = document.createElement("li");
+            li.className =
+              "list-group-item d-flex justify-content-between align-items-start";
+            li.dataset.id = id;
+            li.innerHTML = `
+              <div style="flex:1">
+                <div class="fw-semibold">${escapeHtml(item.name)}</div>
+                <div class="small-muted">SKU: ${escapeHtml(
+                  item.sku || ""
+                )} • $${Number(item.price).toFixed(2)} each</div>
+                <div class="${
+                  lowWarn ? "low-warning" : "small-muted"
+                }" style="margin-top:.25rem">
+                  ${
+                    lowWarn
+                      ? `Low stock after sale — will have ${remaining} left`
+                      : `In stock: ${item.stock}`
+                  }
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2 ms-3">
+                <button class="btn btn-sm btn-outline-secondary dec" data-id="${id}" title="Decrease">−</button>
+                <input class="form-control form-control-sm qty" style="width:66px" data-id="${id}" value="${
+              item.qty
+            }" />
+                <button class="btn btn-sm btn-outline-secondary inc" data-id="${id}" title="Increase">+</button>
+                <button class="btn btn-sm btn-danger remove" data-id="${id}" title="Remove"><i class="bi bi-trash"></i></button>
+                <div class="ms-2 inline-error" data-error-for="${id}" style="display:none;"></div>
+              </div>
+            `;
+            cartEl.appendChild(li);
+            const errEl = li.querySelector(
+              `.inline-error[data-error-for="${id}"]`
+            );
+            if (item._error) {
+              errEl.style.display = "block";
+              errEl.textContent = item._error;
+            } else {
+              errEl.style.display = "none";
+              errEl.textContent = "";
+            }
+          }
+          totalEl.textContent = "$" + Number(total).toFixed(2);
+
+          // persist current cart after rendering
+          saveCartToStorage();
+
+          // update clear cart button state
+          updateClearCartState();
+        }
+
+        // Product search (includes stock and reorder_level in data attributes)
+        async function search(q) {
+          // if not authenticated, do not show products
+          if (!currentUser) {
+            resultsEl.innerHTML = "";
+            return;
+          }
+
+          resultsEl.innerHTML =
+            '<li class="list-group-item text-muted">Searching…</li>';
+          try {
+            const params = new URLSearchParams();
+            if (q) params.set("q", q);
+            const r = await fetch(
+              "/api/products" +
+                (params.toString() ? "?" + params.toString() : ""),
+              { credentials: "same-origin" }
+            );
+            if (!r.ok) {
+              resultsEl.innerHTML = `<li class="list-group-item text-danger">Search failed (${r.status})</li>`;
+              console.error("Search failed", r.status);
+              return;
+            }
+            const list = await r.json();
+            if (!Array.isArray(list) || !list.length) {
+              resultsEl.innerHTML =
+                '<li class="list-group-item text-muted">No results</li>';
+              return;
+            }
+            resultsEl.innerHTML = "";
+            for (const p of list) {
+              const stock = Number(p.quantity || 0);
+              const reorder = Number(p.reorder_level || 0);
+              const li = document.createElement("li");
+              li.className =
+                "list-group-item d-flex justify-content-between align-items-center";
+              li.innerHTML = `
+                <div>
+                  <div class="fw-semibold">${escapeHtml(p.name)}</div>
+                  <div class="small-muted">SKU: ${escapeHtml(
+                    p.sku || ""
+                  )} • ${stock} in stock • $${Number(p.price).toFixed(2)}</div>
+                </div>
+                <div>
+                  <button class="btn btn-sm btn-outline-primary addBtn"
+                    data-id="${p.product_id}"
+                    data-price="${p.price}"
+                    data-name="${escapeHtml(p.name)}"
+                    data-sku="${escapeHtml(p.sku || "")}"
+                    data-stock="${stock}"
+                    data-reorder="${reorder}"
+                  ><i class="bi bi-plus-lg"></i> Add</button>
+                </div>
+              `;
+              resultsEl.appendChild(li);
+            }
+          } catch (err) {
+            resultsEl.innerHTML =
+              '<li class="list-group-item text-danger">Network error</li>';
+            console.error("Search exception", err);
+          }
+        }
+
+        const debouncedSearch = debounce((q) => search(q), 220);
+        searchEl.addEventListener("input", (e) =>
+          debouncedSearch(e.target.value.trim())
+        );
+        searchEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") search(searchEl.value.trim());
+        });
+        clearSearch.addEventListener("click", () => {
+          searchEl.value = "";
+          search("");
+        });
+
+        // initial search call will happen only if auth check shows user is logged in
+        // Load cart from storage on startup (before first render)
+        loadCartFromStorage();
+
+        // Initial render (will save back to storage after)
+        renderCart();
+
+        // Add from product list into cart (respect stock)
+        resultsEl.addEventListener("click", (ev) => {
+          const btn = ev.target.closest("button.addBtn");
+          if (!btn) return;
+
+          // Defensive: require authenticated user before allowing add
+          if (!currentUser) {
+            // redirect to login to maintain privacy
+            window.location.href = "/login.html?next=/pos.html";
+            return;
+          }
+
+          const id = Number(btn.dataset.id);
+          const name = btn.dataset.name || "";
+          const sku = btn.dataset.sku || "";
+          const price = Number(btn.dataset.price || 0);
+          const stock = Number(btn.dataset.stock || 0);
+          const reorder = Number(btn.dataset.reorder || 0);
+
+          // if there's no stock, show message and do not add
+          if (stock <= 0) {
+            setPosMsg("Cannot add — product is out of stock", "danger");
+            return;
+          }
+
+          const existing = cart.get(id);
+          const desiredQty = existing ? existing.qty + 1 : 1;
+
+          if (desiredQty > stock) {
+            setPosMsg("Cannot add more than available stock", "danger");
+            // set inline error on item if present in cart
+            if (existing) {
+              existing._error = `Only ${stock} available`;
+              cart.set(id, existing);
+              renderCart();
+            }
+            return;
+          }
+
+          // clear any previous inline error
+          if (existing && existing._error) delete existing._error;
+
+          cart.set(id, {
+            product_id: id,
+            name,
+            sku,
+            price,
+            qty: desiredQty,
+            stock,
+            reorder_level: reorder,
+          });
+          renderCart();
+        });
+
+        // Cart button interactions (inc/dec/remove) and inline qty changes with validation
+        cartEl.addEventListener("click", (ev) => {
+          const dec = ev.target.closest(".dec");
+          const inc = ev.target.closest(".inc");
+          const rem = ev.target.closest(".remove");
+
+          if (dec) {
+            const id = Number(dec.dataset.id);
+            const item = cart.get(id);
+            if (!item) return;
+            item.qty = Math.max(1, item.qty - 1);
+            if (item._error) delete item._error;
+            cart.set(id, item);
+            renderCart();
+          } else if (inc) {
+            const id = Number(inc.dataset.id);
+            const item = cart.get(id);
+            if (!item) return;
+            const newQty = item.qty + 1;
+            if (newQty > item.stock) {
+              setPosMsg(
+                `Only ${item.stock} units available for ${item.name}`,
+                "danger"
+              );
+              item._error = `Only ${item.stock} available`;
+              cart.set(id, item);
+              renderCart();
+              return;
+            }
+            // ok
+            item.qty = newQty;
+            if (item._error) delete item._error;
+            cart.set(id, item);
+            renderCart();
+          } else if (rem) {
+            const id = Number(rem.dataset.id);
+            cart.delete(id);
+            renderCart();
+          }
+        });
+
+        // Inline qty input validation & update
+        cartEl.addEventListener("change", (ev) => {
+          const input = ev.target.closest(".qty");
+          if (!input) return;
+          const id = Number(input.dataset.id);
+          const item = cart.get(id);
+          if (!item) return;
+          let v = Math.floor(Number(input.value) || 1);
+          if (v < 1) v = 1;
+          if (v > item.stock) {
+            setPosMsg(
+              `Only ${item.stock} units available for ${item.name}`,
+              "danger"
+            );
+            item._error = `Only ${item.stock} available`;
+            item.qty = item.stock; // clamp
+          } else {
+            if (item._error) delete item._error;
+            item.qty = v;
+          }
+          cart.set(id, item);
+          renderCart();
+        });
+
+        // Custom Clear cart workflow: show confirmation modal, only clear on confirm
+        clearCart.addEventListener("click", () => {
+          if (clearCart.disabled) return; // no-op if disabled
+          if (!cart.size) {
+            setPosMsg("Cart is already empty", "info", 2500);
+            return;
+          }
+          // show confirmation modal
+          clearCartModal.show();
+        });
+
+        confirmClearBtn.addEventListener("click", () => {
+          // perform actual clear
+          cart.clear();
+          try {
+            localStorage.removeItem(STORAGE_KEY);
+          } catch (e) {
+            console.warn("Failed to remove cart storage", e);
+          }
+          renderCart();
+          clearCartModal.hide();
+          setPosMsg("Cart cleared", "success", 2500);
+        });
+
+        // Confirm sale (10s timeout). After success show modal with details.
+        let lastSaleResult = null; // will hold server response for invoice opening
+        confirmBtn.addEventListener("click", async () => {
+          if (!currentUser) {
+            window.location.href = "/login.html?next=/pos.html";
+            return;
+          }
+          if (!cart.size) {
+            setPosMsg("Cart is empty", "danger");
+            return;
+          }
+
+          // Final client-side sanity check: ensure no item requested > stock
+          for (const item of cart.values()) {
+            if (item.qty > item.stock) {
+              setPosMsg(
+                `Cannot checkout: ${item.name} requested (${item.qty}) exceeds stock (${item.stock})`,
+                "danger",
+                6000
+              );
+              return;
+            }
+          }
+
+          confirmBtn.disabled = true;
+          const originalText = confirmBtn.innerHTML;
+          confirmBtn.innerHTML =
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Performing sale...';
+          setPosMsg("");
+          console.info("Starting sale...");
+
+          const items = [];
+          for (const it of cart.values())
+            items.push({ product_id: it.product_id, quantity: it.qty });
+
+          const controller = new AbortController();
+          const timeoutMs = 10000;
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+          try {
+            const r = await fetch("/api/sales", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ items }),
+              signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+
+            if (!r.ok) {
+              let parsed = null;
+              try {
+                parsed = await r.json();
+              } catch (e) {}
+              const message =
+                parsed && (parsed.message || parsed.error)
+                  ? parsed.message || parsed.error
+                  : `Server error (${r.status})`;
+              setPosMsg(message, "danger", 6000);
+              console.error("Sale failed", r.status, parsed);
+              return;
+            }
+
+            // parse JSON body
+            const body = await r.json();
+            lastSaleResult = body;
+
+            // compute displayed total (prefer server total but fallback)
+            const total =
+              (body.sale && (body.sale.total_amount || body.sale.total)) ||
+              Array.from(cart.values()).reduce(
+                (s, i) => s + i.qty * i.price,
+                0
+              );
+
+            // Show modal with sale id + total; invoice opening left to user
+            const saleId =
+              (body.sale && (body.sale.sale_id || body.sale.id)) ||
+              body.sale_id ||
+              null;
+            saleSuccessText.textContent = saleId
+              ? `Sale #${saleId} recorded`
+              : "Sale recorded";
+            saleSuccessMeta.textContent = `Total: $${Number(total).toFixed(2)}`;
+            saleModal.show();
+
+            // clear cart in UI and storage
+            cart.clear();
+            try {
+              localStorage.removeItem(STORAGE_KEY);
+            } catch (e) {
+              console.warn("Failed to remove cart storage", e);
+            }
+            renderCart();
+            setPosMsg("Sale recorded", "success", 3000);
+          } catch (err) {
+            clearTimeout(timeoutId);
+            if (err.name === "AbortError") {
+              setPosMsg(
+                "Sale request timed out (server slow). Try again.",
+                "danger",
+                6000
+              );
+              console.warn("Sale aborted (timeout)");
+            } else {
+              setPosMsg("Network/server error", "danger", 6000);
+              console.error("Sale request error:", err);
+            }
+          } finally {
+            clearTimeout(timeoutId);
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = originalText;
+          }
+        });
+
+        // Open invoice from modal button
+        openInvoiceBtn.addEventListener("click", () => {
+          if (!lastSaleResult) {
+            setPosMsg("Invoice not available", "danger");
+            return;
+          }
+          if (lastSaleResult.invoice_url) {
+            window.open(lastSaleResult.invoice_url, "_blank");
+            return;
+          }
+          const saleId =
+            (lastSaleResult.sale &&
+              (lastSaleResult.sale.sale_id || lastSaleResult.sale.id)) ||
+            lastSaleResult.sale_id ||
+            null;
+          if (saleId) {
+            window.open(`/api/sales/${saleId}/invoice`, "_blank");
+          } else {
+            setPosMsg("Invoice not available", "danger");
+          }
+        });
+
+        posLogout.addEventListener("click", async () => {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+          });
+
+          // privacy: clear local storage (cart + product UI prefs)
+          try {
+            localStorage.removeItem(STORAGE_KEY); // cart
+            localStorage.removeItem("products_sort_field");
+            localStorage.removeItem("products_sort_dir");
+          } catch (e) {
+            // ignore
+          }
+
+          // refresh auth UI and clear results
+          await checkAuthAndAdjustUI();
+          resultsEl.innerHTML = "";
+          cart.clear();
+          renderCart();
+        });
+
+        // "Sign In" button in placeholder
+        viewProductsBtn.addEventListener("click", () => {
+          location.href = "/login.html?next=/pos.html";
+        });
+
+        // Auth-aware UI: check and update UI according to session
+        async function checkAuthAndAdjustUI() {
+          try {
+            const r = await fetch("/api/auth/me", {
+              credentials: "same-origin",
+            });
+            if (!r.ok) {
+              // not logged in
+              currentUser = null;
+              posUser.textContent = "Not logged in";
+              cartUser.textContent = "guest";
+              posLogin.classList.remove("d-none");
+              posLogout.classList.add("d-none");
+              posUsers.classList.add("d-none");
+
+              // hide product search/results and show placeholder
+              searchRow.classList.add("d-none");
+              resultsEl.classList.add("d-none");
+              notAuthPanel.classList.remove("d-none");
+
+              // disable confirm (cannot make sale)
+              confirmBtn.disabled = true;
+              confirmBtn.textContent = "Login to confirm";
+              confirmBtn.title = "You must be logged in to complete a sale";
+
+              updateClearCartState();
+              return;
+            }
+            const j = await r.json();
+            currentUser = j;
+            posUser.textContent = `User: ${j.username} (${j.role})`;
+            cartUser.textContent = `${j.username} (${j.role})`;
+            posLogin.classList.add("d-none");
+            posLogout.classList.remove("d-none");
+
+            // show Users button only to admin role
+            if (j.role === "admin") posUsers.classList.remove("d-none");
+            else posUsers.classList.add("d-none");
+
+            // show product area
+            searchRow.classList.remove("d-none");
+            resultsEl.classList.remove("d-none");
+            notAuthPanel.classList.add("d-none");
+
+            // enable confirm
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = "Confirm sale";
+            confirmBtn.title = "Confirm sale";
+
+            updateClearCartState();
+
+            // populate product list
+            search("");
+          } catch (e) {
+            console.error("Auth check failed", e);
+            // on error treat as not logged in (do not leave "Auth check failed" as persistent)
+            currentUser = null;
+            posUser.textContent = "Not logged in";
+            cartUser.textContent = "guest";
+            posLogin.classList.remove("d-none");
+            posLogout.classList.add("d-none");
+            posUsers.classList.add("d-none");
+            searchRow.classList.add("d-none");
+            resultsEl.classList.add("d-none");
+            notAuthPanel.classList.remove("d-none");
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = "Login to confirm";
+
+            updateClearCartState();
+          }
+        }
+
+        // initial auth UI setup
+        await checkAuthAndAdjustUI();
+      })();
+    </script>
+  </body>
+</html>

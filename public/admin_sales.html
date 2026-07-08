@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin — Sales Report · Inv-Sales</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* Adopted from POS styles, plus small tweaks for admin page */
+      :root {
+        --muted: #6b7280;
+        --accent: #0d6efd;
+        --card-bg: #fff;
+      }
+      body {
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+        padding-top: 76px;
+        background: #f6f8fb;
+        color: #111827;
+        margin: 0;
+      }
+      .container-lg {
+        max-width: 1100px;
+      }
+      .small-muted {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .card-min {
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 14px;
+        border: 1px solid #eef0f2;
+      }
+      footer {
+        margin-top: 18px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.9rem;
+        padding-bottom: 6px;
+      }
+      table td,
+      table th {
+        vertical-align: middle !important;
+      }
+
+      /* small inline alert area */
+      #alertArea {
+        position: absolute;
+        right: 14px;
+        top: 12px;
+        z-index: 5;
+        min-width: 220px;
+      }
+
+      /* tiny responsive tweak for header text on narrow screens */
+      @media (max-width: 480px) {
+        .small-muted {
+          font-size: 0.85rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav
+      class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top"
+    >
+      <div class="container-lg">
+        <a class="navbar-brand d-flex gap-2 align-items-center" href="/">
+          <i class="bi bi-box-seam fs-4 text-primary"></i>
+          <span class="fw-semibold">Inv-Sales</span>
+        </a>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <span id="navUser" class="small-muted">Checking login…</span>
+
+          <!-- Users link (only shown to admins) -->
+          <a
+            id="navUsers"
+            class="btn btn-sm btn-outline-secondary d-none"
+            href="/users.html"
+            >Users</a
+          >
+
+          <a
+            id="navLogin"
+            class="btn btn-sm btn-outline-primary"
+            href="/login.html?next=/admin_sales.html"
+            >Login</a
+          >
+          <button
+            id="navLogout"
+            class="btn btn-sm btn-outline-secondary d-none"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container-lg mt-4">
+      <div class="row g-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+          <h4 class="mb-0">Sales — Admin Dashboard</h4>
+          <div class="small-muted">
+            View historic sales, inspect details and export CSV/PDF reports.
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="col-12">
+          <div class="card-min mb-3 position-relative">
+            <div id="alertArea"></div>
+            <div class="row g-3 align-items-end">
+              <div class="col-md-3">
+                <label class="form-label small">Start date</label>
+                <input id="startDate" type="date" class="form-control" />
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small">End date</label>
+                <input id="endDate" type="date" class="form-control" />
+              </div>
+              <div class="col-md-6 text-end">
+                <button id="filterBtn" class="btn btn-primary">
+                  <i class="bi bi-funnel"></i> Filter
+                </button>
+                <button id="clearBtn" class="btn btn-outline-secondary">
+                  Clear
+                </button>
+
+                <!-- CSV + PDF buttons -->
+                <a id="csvExport" class="btn btn-outline-success" role="button"
+                  ><i class="bi bi-download"></i> Export CSV</a
+                >
+                <button
+                  id="pdfExport"
+                  class="btn btn-outline-primary"
+                  type="button"
+                >
+                  <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results summary -->
+        <div class="col-12">
+          <div class="card-min mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="small-muted mb-1">Results</div>
+                <div id="resultCount" class="h5 mb-0">—</div>
+                <div class="small-muted">
+                  Click a row to view sale details and open invoice
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="col-12">
+          <div class="card-min">
+            <div id="noSales" class="small-muted d-none text-center p-4">
+              No sales<br /><span class="small-muted"
+                >Select a date range or clear filters to show all sales.</span
+              >
+            </div>
+
+            <div class="table-responsive">
+              <table id="salesTable" class="table table-hover table-sm">
+                <thead>
+                  <tr>
+                    <th>Sale ID</th>
+                    <th>Date</th>
+                    <th>Cashier</th>
+                    <th>Items</th>
+                    <th class="text-end">Total ($)</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="col-12">
+          <div class="small-muted text-center">• Inv-Sales demo •</div>
+        </footer>
+      </div>
+      <br />
+      <!-- end row -->
+    </main>
+
+    <!-- View modal -->
+    <div class="modal fade" id="viewModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="viewTitle" class="modal-title">Sale details</h5>
+            <button
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div id="viewInfo" class="mb-2 small-muted"></div>
+            <div class="table-responsive">
+              <table id="itemsTable" class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Unit</th>
+                    <th class="text-end">Line total</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="openInvoiceBtn" class="btn btn-primary">
+              Open Invoice
+            </button>
+            <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- jsPDF + autoTable (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      (async function () {
+        // DOM refs
+        const navUser = document.getElementById("navUser"),
+          navLogin = document.getElementById("navLogin"),
+          navLogout = document.getElementById("navLogout"),
+          navUsers = document.getElementById("navUsers");
+        const startDate = document.getElementById("startDate"),
+          endDate = document.getElementById("endDate");
+        const filterBtn = document.getElementById("filterBtn"),
+          clearBtn = document.getElementById("clearBtn"),
+          csvExport = document.getElementById("csvExport"),
+          pdfExport = document.getElementById("pdfExport");
+        const resultCount = document.getElementById("resultCount"),
+          salesTable = document.getElementById("salesTable"),
+          tbody = salesTable.querySelector("tbody"),
+          noSales = document.getElementById("noSales");
+        const alertArea = document.getElementById("alertArea");
+
+        const viewModalEl = document.getElementById("viewModal"),
+          viewModal = new bootstrap.Modal(viewModalEl);
+        const viewTitle = document.getElementById("viewTitle"),
+          viewInfo = document.getElementById("viewInfo"),
+          itemsTableBody = document.querySelector("#itemsTable tbody");
+        const openInvoiceBtn = document.getElementById("openInvoiceBtn");
+
+        let currentSaleForModal = null;
+        let currentUser = null;
+
+        // store last used reports URL (so CSV/PDF use exactly same filters)
+        let lastReportsUrl = null;
+
+        function showAlert(t, type = "info", timeout = 3500) {
+          alertArea.innerHTML = `<div class="alert alert-${type} p-2" role="alert">${t}</div>`;
+          if (timeout)
+            setTimeout(() => {
+              if (alertArea.firstChild) alertArea.innerHTML = "";
+            }, timeout);
+        }
+
+        function logLocal(txt) {
+          try {
+            console.log("[admin_sales] " + txt);
+          } catch (e) {}
+        }
+
+        // AUTH + role enforcement
+        async function checkAuth() {
+          try {
+            const r = await fetch("/api/auth/me", {
+              credentials: "same-origin",
+            });
+            if (!r.ok) {
+              // not logged in -> redirect to login
+              location.href = "/login.html?next=/admin_sales.html";
+              return false;
+            }
+            const j = await r.json();
+            currentUser = j;
+            navUser.textContent = `User: ${j.username} (${j.role})`;
+            navLogin.classList.add("d-none");
+            navLogout.classList.remove("d-none");
+
+            // Show Users link only to admins
+            if (j.role === "admin") {
+              navUsers.classList.remove("d-none");
+            } else {
+              navUsers.classList.add("d-none");
+            }
+
+            // allow only admin/inventory
+            if (j.role !== "admin" && j.role !== "inventory") {
+              document.body.innerHTML = `<main class="container-lg mt-6"><div class="alert alert-danger">Access denied — admin/inventory only.</div></main>`;
+              return false;
+            }
+            return true;
+          } catch (err) {
+            logLocal(
+              "auth check error: " + (err && err.message ? err.message : err)
+            );
+            location.href = "/login.html?next=/admin_sales.html";
+            return false;
+          }
+        }
+
+        const ok = await checkAuth();
+        if (!ok) return;
+
+        navLogout.addEventListener("click", async () => {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+          });
+          location.href = "/";
+        });
+
+        // Build reports URL (keeps same behavior)
+        function buildReportsUrl(format) {
+          const params = new URLSearchParams();
+          const s = startDate.value && startDate.value.trim();
+          const e = endDate.value && endDate.value.trim();
+          if (s) params.set("start", s);
+          if (e) params.set("end", e);
+          if (format) params.set("format", format);
+          const q = params.toString();
+          return "/api/reports/sales" + (q ? "?" + q : "");
+        }
+
+        // sanity check for dates
+        function datesValid() {
+          if (!startDate.value || !endDate.value) return true;
+          try {
+            const s = new Date(startDate.value);
+            const e = new Date(endDate.value);
+            return s.getTime() <= e.getTime();
+          } catch (e) {
+            return false;
+          }
+        }
+
+        // normalize / canonicalize response into array of {sale, items}
+        function canonicalizeResponse(body) {
+          let arr = Array.isArray(body)
+            ? body
+            : body && body.sales
+            ? body.sales
+            : null;
+          if (
+            !Array.isArray(arr) &&
+            body &&
+            typeof body === "object" &&
+            body.sale &&
+            body.items
+          )
+            arr = [body];
+          if (!Array.isArray(arr)) return null;
+
+          return arr.map((entry) => {
+            if (entry.sale && Array.isArray(entry.items)) return entry;
+            if (entry.sale_id || entry.saleId || entry.id) {
+              return {
+                sale: {
+                  sale_id: entry.sale_id || entry.saleId || entry.id,
+                  sale_date: entry.sale_date || entry.date || entry.saleDate,
+                  total_amount: entry.total_amount || entry.total || 0,
+                  status: entry.status || "completed",
+                  user_id: entry.user_id || entry.userId || null,
+                  cashier: entry.cashier || entry.username || null,
+                },
+                items: entry.items || [],
+              };
+            }
+            return { sale: entry.sale || {}, items: entry.items || [] };
+          });
+        }
+
+        // Load & render sales
+        async function loadSales() {
+          // date validation
+          if (!datesValid()) {
+            showAlert(
+              "Start date must be earlier than or equal to end date",
+              "warning",
+              4000
+            );
+            return;
+          }
+
+          tbody.innerHTML = "";
+          noSales.classList.add("d-none");
+          resultCount.textContent = "—";
+          const url = buildReportsUrl(); // JSON URL
+          lastReportsUrl = url; // save exact URL we used for future CSV/PDF export
+          logLocal("Requesting " + url);
+
+          try {
+            const r = await fetch(url, { credentials: "same-origin" });
+            const text = await r.text();
+            let body;
+            try {
+              body = JSON.parse(text);
+            } catch (e) {
+              body = text;
+            }
+
+            if (!r.ok) {
+              noSales.classList.remove("d-none");
+              showAlert(`Server returned ${r.status}`, "danger");
+              logLocal(`Server returned ${r.status}`);
+              return;
+            }
+
+            const canonical = canonicalizeResponse(body);
+            if (!canonical || !canonical.length) {
+              noSales.classList.remove("d-none");
+              return;
+            }
+
+            // populate table
+            tbody.innerHTML = canonical
+              .map((row) => {
+                const s = row.sale || {};
+                const sid = s.sale_id || s.saleId || s.id || "n/a";
+                const date = s.sale_date || s.saleDate || "";
+                const cashier = s.cashier || s.username || "N/A";
+                const itemsCount = Array.isArray(row.items)
+                  ? row.items.length
+                  : 0;
+                const total =
+                  typeof s.total_amount !== "undefined"
+                    ? Number(s.total_amount).toFixed(2)
+                    : s.total
+                    ? Number(s.total).toFixed(2)
+                    : "0.00";
+                const status = s.status || "completed";
+                return `<tr data-sale-id="${sid}">
+          <td>${sid}</td>
+          <td>${date}</td>
+          <td>${escapeHtml(cashier)}</td>
+          <td>${itemsCount}</td>
+          <td class="text-end">${total}</td>
+          <td>${escapeHtml(status)}</td>
+          <td class="text-end"><div class="btn-group" role="group">
+            <button class="btn btn-sm btn-outline-primary viewBtn" data-sale-id="${sid}" title="View sale"><i class="bi bi-eye"></i></button>
+          </div></td>
+        </tr>`;
+              })
+              .join("");
+
+            resultCount.textContent = String(canonical.length);
+            logLocal(`Fetched ${canonical.length} sales`);
+          } catch (err) {
+            noSales.classList.remove("d-none");
+            logLocal(
+              "Load sales error: " + (err && err.message ? err.message : err)
+            );
+            console.error("Network error fetching sales", err);
+            showAlert("Network error fetching sales", "danger");
+          }
+        }
+
+        // Wire controls
+        filterBtn.addEventListener("click", () => loadSales());
+        clearBtn.addEventListener("click", () => {
+          startDate.value = "";
+          endDate.value = "";
+          loadSales();
+        });
+
+        // CSV Export: reuse exact lastReportsUrl and append format=csv (keeps other params)
+        csvExport.addEventListener("click", (ev) => {
+          // prefer lastReportsUrl; if none, build from current inputs
+          let base = lastReportsUrl || buildReportsUrl();
+          try {
+            const u = new URL(base, window.location.origin);
+            u.searchParams.set("format", "csv");
+            // navigate to url so browser downloads the filtered CSV
+            window.location.href = u.href;
+          } catch (e) {
+            // fallback: simple string manipulation
+            let out = base;
+            if (out.indexOf("?") === -1) out += "?format=csv";
+            else out += "&format=csv";
+            window.location.href = out;
+          }
+        });
+
+        // EXPORT PDF HANDLER
+        pdfExport.addEventListener("click", async () => {
+          // small UX: disable while generating
+          pdfExport.disabled = true;
+          const originalText = pdfExport.innerHTML;
+          pdfExport.innerHTML =
+            '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Generating PDF...';
+
+          try {
+            // determine JSON URL (ensure format isn't csv)
+            let base = lastReportsUrl || buildReportsUrl();
+            const u = new URL(base, window.location.origin);
+            // remove format param if present (server returns JSON by default)
+            if (u.searchParams.get("format")) u.searchParams.delete("format");
+            const fetchUrl = u.href;
+            logLocal("Fetching for PDF: " + fetchUrl);
+
+            const r = await fetch(fetchUrl, { credentials: "same-origin" });
+            if (!r.ok) {
+              showAlert("Failed to fetch sales for PDF", "danger");
+              return;
+            }
+            const text = await r.text();
+            let body;
+            try {
+              body = JSON.parse(text);
+            } catch (e) {
+              body = text;
+            }
+
+            const canonical = canonicalizeResponse(body);
+            if (!canonical || !canonical.length) {
+              showAlert("No sales to export for the selected range", "warning");
+              return;
+            }
+
+            await generatePdfFromSales(canonical);
+          } catch (err) {
+            console.error("PDF export error:", err);
+            showAlert("Error generating PDF", "danger");
+          } finally {
+            pdfExport.disabled = false;
+            pdfExport.innerHTML = originalText;
+          }
+        });
+
+        // generate PDF using jsPDF + autoTable
+        async function generatePdfFromSales(salesArray) {
+          // jsPDF is provided via UMD build; extract constructor
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF({ unit: "pt", format: "a4", compress: true });
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const leftMargin = 40;
+          const rightMargin = 40;
+          const topMargin = 60; // where first content starts
+          const bottomMargin = 60; // reserved bottom area
+          const usableWidth = pageWidth - leftMargin - rightMargin;
+
+          // pretty date range for filename
+          const s = startDate.value || "";
+          const e = endDate.value || "";
+          const now = new Date();
+          const ymd = now.toISOString().slice(0, 10).replace(/-/g, "");
+          const filename = `sales_${s || "all"}_${e || "all"}_${ymd}.pdf`;
+
+          // cursor tracks vertical position where next content will be placed
+          let cursorY = topMargin;
+
+          // small helper to ensure enough space for header+tiny table chunk
+          function ensureSpace(minNeeded) {
+            // if not enough space on current page, add new page and reset cursor
+            if (cursorY + minNeeded > pageHeight - bottomMargin) {
+              doc.addPage();
+              cursorY = topMargin;
+            }
+          }
+
+          for (let idx = 0; idx < salesArray.length; idx++) {
+            const entry = salesArray[idx];
+            const sale = entry.sale || {};
+            const items = Array.isArray(entry.items) ? entry.items : [];
+
+            // before printing header, ensure we have at least some space (header + at least a couple rows)
+            // set minNeeded to ~100 pts as conservative estimate
+            ensureSpace(100);
+
+            // Sale header (Sale ID, date, cashier) at current cursor
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text(
+              `Sale #${sale.sale_id || sale.saleId || sale.id || ""}`,
+              leftMargin,
+              cursorY
+            );
+
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            const metaY = cursorY + 16;
+            const metaTexts = [
+              `Date: ${sale.sale_date || sale.saleDate || ""}`,
+              `Cashier: ${sale.cashier || sale.username || "N/A"}`,
+            ];
+            doc.text(metaTexts.join(" • "), leftMargin, metaY);
+
+            // prepare table data
+            const tableBody = items.map((it) => {
+              const productName =
+                it.product_name || it.name || `product #${it.product_id || ""}`;
+              const qty = String(it.quantity || 0);
+              const unit = `$${Number(it.unit_price || it.price || 0).toFixed(
+                2
+              )}`;
+              const line = `$${Number(
+                it.line_total ||
+                  (it.quantity || 0) * (it.unit_price || it.price || 0)
+              ).toFixed(2)}`;
+              return [productName, qty, unit, line];
+            });
+
+            // table start just below meta
+            const tableStartY = metaY + 10;
+
+            // call autoTable; it will handle page breaks if table is long
+            doc.autoTable({
+              startY: tableStartY,
+              margin: { left: leftMargin, right: rightMargin },
+              head: [["Product", "Qty", "Unit", "Line total"]],
+              body: tableBody,
+              styles: { fontSize: 9, cellPadding: 4 },
+              headStyles: {
+                fillColor: [240, 240, 240],
+                textColor: 20,
+                fontStyle: "bold",
+              },
+              columnStyles: {
+                0: { cellWidth: "auto" },
+                1: { halign: "right", cellWidth: 40 },
+                2: { halign: "right", cellWidth: 70 },
+                3: { halign: "right", cellWidth: 80 },
+              },
+              theme: "striped",
+              // no didDrawPage required here
+            });
+
+            // update finalY from lastAutoTable (autoTable updates doc.lastAutoTable.finalY)
+            const afterTableY = doc.lastAutoTable
+              ? doc.lastAutoTable.finalY
+              : tableStartY + 20;
+
+            // place total at right of page, just under table
+            const totalText = `Total: $${Number(
+              sale.total_amount || sale.total || 0
+            ).toFixed(2)}`;
+            const totalY = afterTableY + 8;
+
+            // if table caused a page break and finalY is near bottom, ensure total is on same page;
+            // if not enough space to show total, add a page and place total at top area
+            if (totalY > pageHeight - bottomMargin) {
+              doc.addPage();
+              // place total near top margin
+              const topTotalY = topMargin + 20;
+              doc.setFont("helvetica", "bold");
+              doc.text(
+                totalText,
+                pageWidth - rightMargin - doc.getTextWidth(totalText),
+                topTotalY
+              );
+              // draw HR a bit below
+              const hrY = topTotalY + 12;
+              doc.setDrawColor(200);
+              doc.setLineWidth(0.5);
+              doc.line(leftMargin, hrY, pageWidth - rightMargin, hrY);
+              cursorY = hrY + 12;
+            } else {
+              doc.setFont("helvetica", "bold");
+              doc.text(
+                totalText,
+                pageWidth - rightMargin - doc.getTextWidth(totalText),
+                totalY
+              );
+
+              // horizontal rule below (thin)
+              const hrY = totalY + 12;
+              doc.setDrawColor(200);
+              doc.setLineWidth(0.5);
+              doc.line(leftMargin, hrY, pageWidth - rightMargin, hrY);
+
+              // set cursor for next sale just below HR
+              cursorY = hrY + 12;
+            }
+
+            // small safety: if cursor now too close to bottom, start new page for next sale
+            if (cursorY + 80 > pageHeight - bottomMargin) {
+              doc.addPage();
+              cursorY = topMargin;
+            }
+          } // end for
+
+          // trigger download
+          doc.save(filename);
+          showAlert("PDF generated — download should begin", "success", 3500);
+        }
+
+        // Row view handler
+        salesTable.addEventListener("click", async (ev) => {
+          const btn = ev.target.closest(".viewBtn");
+          if (!btn) return;
+          const saleId = btn.dataset.saleId || btn.getAttribute("data-sale-id");
+          if (!saleId) return;
+          const url = "/api/sales/" + encodeURIComponent(saleId);
+          try {
+            const r = await fetch(url, { credentials: "same-origin" });
+            if (!r.ok) {
+              logLocal(`Sale details failed ${r.status}`);
+              showAlert("Failed to fetch sale details", "danger");
+              return;
+            }
+            const j = await r.json();
+            const sale = j.sale || j;
+            const items = j.items || [];
+            currentSaleForModal = sale;
+            viewTitle.textContent = `Sale #${
+              sale.sale_id || sale.saleId || sale.id || ""
+            }`;
+            viewInfo.textContent = `Date: ${
+              sale.sale_date || sale.saleDate || ""
+            } • Cashier: ${
+              sale.cashier || sale.username || "N/A"
+            } • Total: $${Number(sale.total_amount || sale.total || 0).toFixed(
+              2
+            )}`;
+            itemsTableBody.innerHTML = items
+              .map(
+                (it) => `<tr>
+        <td>${escapeHtml(
+          it.product_name || it.name || "product #" + (it.product_id || "")
+        )}</td>
+        <td>${it.quantity}</td>
+        <td>$${Number(it.unit_price || it.price || 0).toFixed(2)}</td>
+        <td class="text-end">$${Number(
+          it.line_total || it.quantity * (it.unit_price || 0)
+        ).toFixed(2)}</td>
+      </tr>`
+              )
+              .join("");
+            viewModal.show();
+          } catch (err) {
+            logLocal(
+              "View sale error: " + (err && err.message ? err.message : err)
+            );
+            showAlert("Network error fetching sale details", "danger");
+          }
+        });
+
+        openInvoiceBtn.addEventListener("click", () => {
+          if (!currentSaleForModal || !currentSaleForModal.sale_id) {
+            showAlert("Invoice not available for this sale", "warning");
+            return;
+          }
+          const url =
+            "/api/sales/" +
+            encodeURIComponent(currentSaleForModal.sale_id) +
+            "/invoice";
+          window.open(url, "_blank");
+        });
+
+        function escapeHtml(s) {
+          return String(s || "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+        }
+
+        // initial load
+        await loadSales();
+      })();
+    </script>
+  </body>
+</html>

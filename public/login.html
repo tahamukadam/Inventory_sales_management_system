@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Login — Inventory</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --muted: #6b7280;
+        --accent: #0d6efd;
+        --card-bg: #ffffff;
+        --page-bg: #f7f8fa;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        background: var(--page-bg);
+        padding-top: 76px; /* same vertical rhythm used across pages */
+        color: #111827;
+      }
+
+      .container-lg {
+        max-width: 1100px;
+      }
+
+      /* NAVBAR consistent with other pages */
+      .navbar {
+        height: 56px;
+        box-shadow: 0 2px 6px rgba(2, 6, 23, 0.04);
+      }
+      .navbar-brand {
+        font-weight: 600;
+        font-size: 1.05rem;
+      }
+      .navbar .bi {
+        color: var(--accent);
+        transform: translateY(-1px);
+      }
+
+      /* center card */
+      .auth-card {
+        margin-top: 3.5rem;
+        border-radius: 10px;
+        border: 1px solid #eef0f2;
+        background: var(--card-bg);
+      }
+
+      .card-title {
+        font-weight: 600;
+        margin-bottom: 0.6rem;
+      }
+
+      .small-muted {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .form-label.small {
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .input-with-toggle {
+        position: relative;
+      }
+      .input-with-toggle .pw-toggle {
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        padding: 0.15rem;
+      }
+
+      #msg {
+        min-height: 1.2rem;
+      }
+
+      footer.site-footer {
+        margin-top: 12px;
+        margin-bottom: 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      @media (max-width: 420px) {
+        .auth-card {
+          margin-top: 2rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-light bg-white border-bottom fixed-top">
+      <div class="container-lg">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+          <i class="bi bi-box-seam fs-4"></i>
+          <span class="fw-semibold">Inv-Sales</span>
+        </a>
+
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <span id="navUser" class="small-muted">Checking login…</span>
+
+          <!-- Users link (admin only) -->
+          <a
+            id="navUsers"
+            class="btn btn-sm btn-outline-secondary d-none"
+            href="/users.html"
+            >Users</a
+          >
+
+          <a
+            id="navLogin"
+            class="btn btn-sm btn-outline-primary d-none"
+            href="/login.html"
+            >Login</a
+          >
+          <button
+            id="navLogout"
+            class="btn btn-sm btn-outline-secondary d-none"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container-lg">
+      <div class="row justify-content-center">
+        <div class="col-sm-10 col-md-7 col-lg-5">
+          <div class="card auth-card shadow-sm mt-4">
+            <div class="card-body p-4">
+              <h4 class="card-title">Sign in</h4>
+
+              <form id="loginForm" novalidate>
+                <div class="mb-3">
+                  <label class="form-label small">Username</label>
+                  <input
+                    id="username"
+                    name="username"
+                    class="form-control"
+                    placeholder="admin"
+                    autocomplete="username"
+                    required
+                    autofocus
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small">Password</label>
+                  <div class="input-with-toggle">
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      class="form-control"
+                      placeholder="password"
+                      autocomplete="current-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="pw-toggle"
+                      id="togglePw"
+                      aria-label="Show password"
+                      title="Show / hide password"
+                    >
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  id="msg"
+                  role="alert"
+                  aria-live="polite"
+                  class="text-danger mb-2"
+                ></div>
+
+                <div class="d-grid gap-2 mb-2">
+                  <button class="btn btn-primary" id="submitBtn" type="submit">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Login
+                  </button>
+                  <a href="/" class="btn btn-outline-secondary">Back to Home</a>
+                </div>
+
+                <div class="small-muted">
+                  Use <strong>admin</strong> / <strong>admin123</strong> or
+                  create via <code>scripts/createAdmin.js</code>.
+                </div>
+              </form>
+
+              <hr />
+
+              <details>
+                <summary class="small-muted">Debug hint</summary>
+                <div class="small-muted mt-2">
+                  If login fails, open DevTools → Network →
+                  <code>POST /api/auth/login</code> and inspect Status &
+                  Response. Paste them here if you need help.
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <footer class="site-footer">
+            Inv-Sales demo • Node · Express · MySQL
+          </footer>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      (async function () {
+        // Navbar auth display
+        const navUser = document.getElementById("navUser");
+        const navLogin = document.getElementById("navLogin");
+        const navLogout = document.getElementById("navLogout");
+        const navUsers = document.getElementById("navUsers");
+
+        try {
+          const r = await fetch("/api/auth/me", { credentials: "same-origin" });
+          if (!r.ok) {
+            navUser.textContent = "Not logged in";
+            navLogin.classList.remove("d-none");
+            navUsers.classList.add("d-none");
+          } else {
+            const j = await r.json().catch(() => null);
+            navUser.textContent = `User: ${j?.username ?? "—"} (${
+              j?.role ?? "—"
+            })`;
+            navLogout.classList.remove("d-none");
+            // show Users link only to admin users
+            if (j && j.role === "admin") {
+              navUsers.classList.remove("d-none");
+            } else {
+              navUsers.classList.add("d-none");
+            }
+          }
+        } catch (e) {
+          navUser.textContent = "Auth check failed";
+          navUsers.classList.add("d-none");
+          console.debug("Auth check error", e);
+        }
+        navLogout.addEventListener("click", async () => {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+          });
+          location.reload();
+        });
+      })();
+
+      // Handle password visibility toggle
+      (function () {
+        const toggle = document.getElementById("togglePw");
+        const pw = document.getElementById("password");
+        toggle.addEventListener("click", () => {
+          if (pw.type === "password") {
+            pw.type = "text";
+            toggle.innerHTML = '<i class="bi bi-eye-slash"></i>';
+            toggle.setAttribute("aria-label", "Hide password");
+          } else {
+            pw.type = "password";
+            toggle.innerHTML = '<i class="bi bi-eye"></i>';
+            toggle.setAttribute("aria-label", "Show password");
+          }
+        });
+      })();
+
+      // Robust login handler (inline messages, no toasts)
+      (function () {
+        const form = document.getElementById("loginForm");
+        const msg = document.getElementById("msg");
+        const submitBtn = document.getElementById("submitBtn");
+
+        function setError(text) {
+          msg.style.color = "#b33";
+          msg.textContent = text || "";
+        }
+        function setSuccess(text) {
+          msg.style.color = "green";
+          msg.textContent = text || "";
+        }
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          msg.textContent = "";
+          submitBtn.disabled = true;
+
+          const payload = {
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value,
+          };
+
+          try {
+            const res = await fetch("/api/auth/login", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
+            const text = await res.text().catch(() => null);
+            let parsed = null;
+            try {
+              parsed = text ? JSON.parse(text) : null;
+            } catch (err) {
+              parsed = null;
+            }
+
+            if (!res.ok) {
+              const userMsg =
+                (parsed && (parsed.error || parsed.message)) ||
+                (text && text) ||
+                `HTTP ${res.status}`;
+              setError(userMsg);
+              console.warn("Login failed", {
+                status: res.status,
+                body: text,
+                parsed,
+              });
+              submitBtn.disabled = false;
+              return;
+            }
+
+            setSuccess("Login successful — redirecting...");
+            console.info("Login succeeded (UI):", parsed || text || res.status);
+
+            // redirect after short delay to allow user to see success
+            setTimeout(() => {
+              const next =
+                new URLSearchParams(location.search).get("next") || "/pos.html";
+              try {
+                // Only allow same-origin or root-relative redirects
+                if (
+                  next &&
+                  (next.startsWith("/") ||
+                    next.startsWith(window.location.origin))
+                ) {
+                  location.href = next;
+                } else {
+                  location.href = "/pos.html";
+                }
+              } catch (err) {
+                location.href = "/pos.html";
+              }
+            }, 350);
+          } catch (err) {
+            const docMsg =
+              "Network error: " +
+              (err && err.message ? err.message : String(err));
+            setError(docMsg);
+            console.error("Login error (fetch threw):", err);
+            submitBtn.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
